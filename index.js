@@ -96,6 +96,12 @@ io.on("connection", async (socket) => {
   });
 });
 
+// Root route
+app.get("/", (req, res) => {
+  res.send("Welcome to the server!");
+});
+
+
 const PORT = process.env.PORT || 3000;
 
 function startServer() {
