@@ -31,7 +31,7 @@ router.post(
         shape,
         styleOfChair,
         choice,
-        totalPrice,
+        price,
       } = req.body;
       const uploadedImageURLs = [];
       for (const file of req.files) {
@@ -70,7 +70,7 @@ router.post(
         seaters: seaters,
         shape: shape,
         choice: choice,
-        price: totalPrice,
+        price: price,
       });
 
       res.status(201).json({ message: "Order created successfully", order });
