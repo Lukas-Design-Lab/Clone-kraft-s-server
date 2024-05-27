@@ -70,7 +70,7 @@ router.post(
         seaters: seaters,
         shape: shape,
         choice: choice,
-        totalPrice: totalPrice,
+        price: totalPrice,
       });
 
       res.status(201).json({ message: "Order created successfully", order });

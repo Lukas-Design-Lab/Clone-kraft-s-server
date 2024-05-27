@@ -41,7 +41,7 @@ const MessageSchema = new mongoose.Schema({
 const OrderSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User", // Assuming you have a User model
+    ref: "User",
     required: true,
   },
   username: {
@@ -67,12 +67,9 @@ const OrderSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  selectedImages: [
-    {
-      type: String, // Assuming you are storing image URLs
-      required: true,
-    },
-  ],
+  selectedImages: {
+    type: String,
+  },
   description: {
     type: String,
   },
