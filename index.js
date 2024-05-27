@@ -10,13 +10,12 @@ const orders = require("./router/order/order");
 const bodyParser = require("body-parser");
 const admin = require("./router/admin/admin");
 const Order = require("./models/order");
-
+//const paystackRoutes = require("./router/pay");
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// MongoDB connection
 const dbURI =
   "mongodb+srv://ikennaibenemee:ikennaibenemee@cluster0.vheofmm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
@@ -38,6 +37,8 @@ const io = socketIo(server, {
 app.use("/auth", auth);
 app.use("/order", orders);
 app.use("/admin", admin);
+//app.use("/api/paystack", paystackRoutes); // Use the Paystack router
+
 // Map to keep track of which users are typing in each room
 //const typingUsers = new Map();
 
@@ -100,7 +101,6 @@ io.on("connection", async (socket) => {
 app.get("/", (req, res) => {
   res.send("Welcome to the server!");
 });
-
 
 const PORT = process.env.PORT || 3000;
 

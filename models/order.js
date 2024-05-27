@@ -89,7 +89,21 @@ const OrderSchema = new mongoose.Schema({
     type: String,
     default: "pending",
   },
-
+  seaters: {
+    type: String,
+  },
+  shape: {
+    type: String,
+  },
+  styleOfChair: {
+    type: String,
+  },
+  choice: {
+    type: String,
+  },
+  totalPrice: {
+    type: Number,
+  },
   messages: [MessageSchema], // Array for storing messages
   createdAt: {
     type: Date,

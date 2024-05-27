@@ -18,14 +18,24 @@ const upload = multer({ storage: storage });
 router.post(
   "/create",
   authMiddleware,
-  upload.array("images"),
+  upload.single("image"),
+  // router.post(
+  //   "/create",
+  //   authMiddleware,
+  //   upload.array("images"),
   async (req, res) => {
     try {
       const { _id, username, email, imageUrl, address, phoneNumber } = req.user; // Assuming the authMiddleware adds user information to req.user
-
-      const { selectedLabel, description, deliveryOption } = req.body;
-
-      // Upload images to Backblaze B2
+      const {
+        selectedLabel,
+        description,
+        deliveryOption,
+        seaters,
+        shape,
+        styleOfChair,
+        choice,
+        totalPrice
+      } = req.body;
       const uploadedImageURLs = [];
       for (const file of req.files) {
         const fileName = `orders/images/${Date.now()}_${file.originalname.replace(
@@ -59,6 +69,11 @@ router.post(
         description,
         deliveryOption,
         imageUrl,
+        styleOfChair: styleOfChair,
+        seaters: seaters,
+        shape: shape,
+        choice: choice,
+        totalPrice: totalPrice,
       });
 
       res.status(201).json({ message: "Order created successfully", order });
