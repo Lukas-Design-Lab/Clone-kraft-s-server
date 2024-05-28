@@ -67,9 +67,12 @@ const OrderSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  selectedImages: {
-    type: String,
-  },
+  selectedImages: [
+    {
+      type: String, // Assuming you are storing image URLs
+      required: true,
+    },
+  ],
   description: {
     type: String,
   },

@@ -18,7 +18,8 @@ const upload = multer({ storage: storage });
 router.post(
   "/create",
   authMiddleware,
-  upload.single("image"),
+  authMiddleware,
+  upload.array("images"),
   async (req, res) => {
     try {
       const { _id, username, email, imageUrl, address, phoneNumber } = req.user; // Assuming the authMiddleware adds user information to req.user
