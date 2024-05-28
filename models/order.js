@@ -67,7 +67,9 @@ const OrderSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  selectedImages: { type: [String], required: true }, // Array of strings
+  selectedImages: {
+    type: String,
+  },
   description: {
     type: String,
   },
