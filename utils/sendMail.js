@@ -16,10 +16,23 @@ const sendOTP = async (email, otp) => {
   try {
     // Send mail with defined transport object
     let info = await transporter.sendMail({
-      from: '"Ikenna Ibeneme" <ibenemeikenna96@gmail.com', // Sender address
+      from: '"Ikenna Ibeneme" <ibenemeikenna96@gmail.com>', // Sender address
       to: email, // List of recipients
       subject: "Your OTP for Verification", // Subject line
-      text: `Your OTP for verification is: ${otp}`, // Plain text body
+      text: `Dear User,
+
+Thank you for registering with Clonekraft. We are excited to have you on board. Clonekraft is your ultimate destination for uploading images of furniture you admire, estimating the cost to replicate them, making payments, and getting your custom furniture crafted and delivered to you.
+
+To proceed with the verification of your account, please use the One-Time Password (OTP) provided below:
+
+Your OTP for verification is: ${otp}
+
+Please enter this OTP on the Clonekraft website to complete your registration process. This code is valid for the next 15 minutes.
+
+Thank you for choosing Clonekraft. We look forward to helping you bring your furniture inspirations to life.
+
+Best regards,
+Clonekraft Team`, // Plain text body
       html: `<!DOCTYPE html>
       <html lang="en">
       <head>
@@ -28,7 +41,7 @@ const sendOTP = async (email, otp) => {
           <title>OTP Email</title>
           <style>
               body {
-                  font-family: Arial, sans-serif;
+                  font-family: 'Plus Jakarta Sans', Arial, sans-serif;
                   background-color: #f4f4f4;
                   margin: 0;
                   padding: 0;
@@ -41,12 +54,12 @@ const sendOTP = async (email, otp) => {
                   border-radius: 8px;
                   box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
               }
-              .logo {
+              .header {
                   text-align: center;
                   margin-bottom: 20px;
               }
-              .logo img {
-                  max-width: 150px;
+              .header h2 {
+                  color: #808080;
               }
               .otp-text {
                   font-size: 24px;
@@ -54,12 +67,6 @@ const sendOTP = async (email, otp) => {
                   color: #333333;
                   text-align: center;
               }
-              .otp-header {
-                font-size: 24px;
-                font-weight: bold;
-                color: #fff;
-                text-align: center;
-            }
               .otp-number {
                   font-size: 36px;
                   font-weight: bold;
@@ -67,39 +74,46 @@ const sendOTP = async (email, otp) => {
                   margin-top: 10px;
                   text-align: center;
               }
+              .description {
+                  font-size: 16px;
+                  color: #333333;
+                  margin-top: 20px;
+              }
+              .footer {
+                  margin-top: 20px;
+                  text-align: center;
+                  font-size: 14px;
+                  color: #808080;
+              }
           </style>
       </head>
       <body>
           <div class="container">
-          
-              <style>
-              @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
-            </style>
-            <link rel="preconnect" href="https://fonts.googleapis.com">
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-            <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
-            
-            
-            <div class="header">
-            <h2 style='text-align: center; color: #808080'>Welcome to our platform Clonekraft! </h2>
-          </div>
-          
-            <div class="body">
-          
-            </div>
-              <p class="otp-number">${otp}</p>
+              <div class="header">
+                  <h2>Welcome to Clonekraft!</h2>
+              </div>
+              <div class="description">
+                  <p>Dear User,</p>
+                  <p>Thank you for registering with Clonekraft. We are excited to have you on board. Clonekraft is your ultimate destination for uploading images of furniture you admire, estimating the cost to replicate them, making payments, and getting your custom furniture crafted and delivered to you.</p>
+                  <p>To proceed with the verification of your account, please use the One-Time Password (OTP) provided below:</p>
+              </div>
+              <div class="otp-text">
+                  Your OTP for verification is:
+              </div>
+              <div class="otp-number">
+                  ${otp}
+              </div>
+              <div class="description">
+                  <p>Please enter this OTP on the Clonekraft website to complete your registration process. This code is valid for the next 15 minutes.</p>
+                  <p>Thank you for choosing Clonekraft. We look forward to helping you bring your furniture inspirations to life.</p>
+              </div>
+              <div class="footer">
+                  Best regards,<br>
+                  Clonekraft Team
+              </div>
           </div>
       </body>
-      </html>
-
-      `, // HTML body
-      // attachments: [
-      //   {
-      //     filename: "logo.png",
-      //     path: logoPath,
-      //     cid: "logo", // Content ID of the image
-      //   },
-      // ],
+      </html>`, // HTML body
     });
 
     console.log("Message sent: %s", info.messageId);
