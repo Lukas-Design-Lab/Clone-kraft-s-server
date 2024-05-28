@@ -16,7 +16,7 @@ const sendOTP = async (email, otp) => {
   try {
     // Send mail with defined transport object
     let info = await transporter.sendMail({
-      from: '"Ikenna Ibeneme" <ibenemeikenna96@gmail.com>', // Sender address
+      from: '"Clonekraft Team" <ibenemeikenna96@gmail.com>', // Sender address
       to: email, // List of recipients
       subject: "Your OTP for Verification", // Subject line
       text: `Dear User,
