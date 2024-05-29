@@ -6,6 +6,14 @@ const genAdmin = require("../../utils/genAdmin");
 const adminMiddleware = require("../../middleware/token/adminToken");
 // Route to update admin password
 
+// {
+//   "adminEmail": "Ju@admin.com",
+//   "password": "Books&media0307",
+//   "fullname": "Judith Ichado",
+//   "username": "Judith",
+//   "admin": "admin"
+// }
+
 router.put("/update", async (req, res) => {
   try {
     const { adminEmail, currentPassword, newPassword, userType } = req.body;
@@ -16,7 +24,7 @@ router.put("/update", async (req, res) => {
       return res.status(404).json({ message: "Admin not found" });
     }
 
-    admin.userType = userType;
+    admin.admin = true;
     await admin.save();
 
     res.status(200).json({ message: "Admin password updated successfully" });
@@ -48,7 +56,7 @@ router.get("/profiler", adminMiddleware, async (req, res) => {
   try {
     // Extract admin email from request headers
     const adminEmail = req.user.email;
-    console.log(adminEmail, 'adminEmail')
+    console.log(adminEmail, "adminEmail");
 
     // Fetch admin profile from the database
     const adminProfile = await Admin.findOne({ adminEmail });
@@ -103,6 +111,7 @@ router.post("/create", async (req, res) => {
       password: hashedPassword,
       username,
       fullname,
+      admin: true,
     });
     res
       .status(201)

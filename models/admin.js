@@ -26,10 +26,12 @@ const AdminSchema = new mongoose.Schema({
     type: String,
     unique: true,
   },
-  userType: {
-    type: String,
-    unique: true,
-  },
+  // userType: {
+  //   type: String,
+  //   default: null,
+  //   required: true,
+  // },
+  admin: { type: Boolean },
 });
 
 module.exports = mongoose.model("Admin", AdminSchema);

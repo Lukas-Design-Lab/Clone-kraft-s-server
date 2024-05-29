@@ -277,7 +277,7 @@ router.get("/users", adminMiddleware, async (req, res) => {
   try {
     console.log(req.user.userType, "eq.user.userType");
     // Check if the user is an admin
-    if (req.user.userType !== "admin") {
+    if (req.user.admin === true) {
       return res
         .status(403)
         .send("Access forbidden. Admin privileges required.");

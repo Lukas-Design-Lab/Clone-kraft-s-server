@@ -7,7 +7,7 @@ const genAdmin = (user) => {
       _id: user._id,
       email: user.adminEmail, // Using adminEmail instead of email
       username: user.username,
-      userType: user.userType,
+      admin: user?.admin,
     },
     jwtSecretKey
   );

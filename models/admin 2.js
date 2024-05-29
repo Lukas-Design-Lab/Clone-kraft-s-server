@@ -28,7 +28,7 @@ const AdminSchema = new mongoose.Schema({
   },
   userType: {
     type: String,
-    unique: true,
+
   },
 });
 
