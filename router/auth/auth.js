@@ -11,6 +11,7 @@ const authMiddleware = require("../../middleware/token/headerToken");
 const B2 = require("backblaze-b2");
 const multer = require("multer");
 const adminMiddleware = require("../../middleware/token/adminToken");
+const { sendWelcomeEmail } = require("../../utils/sendWelcomeEmail");
 
 // const User = require("../models/user");
 // const OTPModel = require("../models/otp");
@@ -125,18 +126,29 @@ router.post("/register", async (req, res) => {
 
   try {
     // Generate OTP
-    const otp = Math.random().toString().slice(2, 8); // Generate a 6-digit OTP
+    //const otp = Math.random().toString().slice(2, 8); // Generate a 6-digit OTP
 
     // Save OTP to database
-    await OTPModel.create({ email: user.email, otp });
+    //await OTPModel.create({ email: user.email, otp });
 
     // Send OTP to user's email
-    await sendOTP(user.email, otp);
+    //await sendOTP(user.email, otp);
 
     // Save user to the database
     await user.save();
+    await sendWelcomeEmail(user.email);
+    const token = genAuthToken(user);
+    return res.status(200).json({ user, token });
+    //res.send("OTP sent to your email for verification.");
+  } catch (error) {
+    res.status(500).send("Internal server error");
+  }
+});
 
-    res.send("OTP sent to your email for verification.");
+router.delete("/delete-all-users", async (req, res) => {
+  try {
+    await User.deleteMany();
+    res.status(200).send("All users deleted successfully.");
   } catch (error) {
     res.status(500).send("Internal server error");
   }
@@ -282,7 +294,7 @@ router.get("/user", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select("-password");
     if (!user) return res.status(404).send("User not found.");
-
+    console.log(user, "useruser");
     // Return the user profile without the password
     res.status(200).send(user);
   } catch (error) {

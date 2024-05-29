@@ -15,21 +15,31 @@ const UserSchema = new mongoose.Schema(
       minlength: 3,
       maxlength: 30,
     },
+    username: {
+      type: String,
+      required: true,
+      minlength: 3,
+      maxlength: 30,
+    },
     password: {
       type: String,
       required: true,
     },
     fullName: {
       type: String,
+      default: null,
     },
     address: {
       type: String,
+      default: null,
     },
     phoneNumber: {
       type: String,
+      default: null,
     },
     imageUrl: {
       type: String,
+      default: null,
     },
     orders: [
       {
