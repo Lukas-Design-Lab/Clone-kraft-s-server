@@ -275,9 +275,9 @@ router.delete("/delete", async (req, res) => {
 
 router.get("/users", adminMiddleware, async (req, res) => {
   try {
-    console.log(req.user.userType, "eq.user.userType");
+    //console.log(req.user.userType, "eq.user.userType");
     // Check if the user is an admin
-    if (req.user.admin === true) {
+    if (req.user.admin === false) {
       return res
         .status(403)
         .send("Access forbidden. Admin privileges required.");
