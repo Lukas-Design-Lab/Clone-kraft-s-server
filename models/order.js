@@ -54,14 +54,14 @@ const OrderSchema = new mongoose.Schema({
   },
   address: {
     type: String,
-    required: true,
+    //required: true,
   },
   imageUrl: {
     type: String,
   },
   phoneNumber: {
     type: String,
-    required: true,
+    //required: true,
   },
   selectedLabel: {
     type: String,
