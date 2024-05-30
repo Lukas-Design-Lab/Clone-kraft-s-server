@@ -66,6 +66,7 @@ router.post(
         description,
         deliveryOption,
         imageUrl,
+        paid: false,
         // styleOfChair: styleOfChair,
         // seaters: seaters,
         // shape: shape,
