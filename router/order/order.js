@@ -46,7 +46,9 @@ router.post(
   upload.array("images"),
   async (req, res) => {
     try {
-      const { _id, username, email, imageUrl, address, phoneNumber } = req.user; // Assuming the authMiddleware adds user information to req.user
+      const { _id, username, email, 
+       // imageUrl, address, phoneNumber 
+      } = req.user; // Assuming the authMiddleware adds user information to req.user
       const {
         selectedLabel,
         description,
@@ -83,14 +85,14 @@ router.post(
         userId: _id,
         username: username,
         email: email,
-        address: address ? address : null,
-        phoneNumber: phoneNumber ? phoneNumber : null,
+        //address: address ? address : null,
+        //phoneNumber: phoneNumber ? phoneNumber : null,
 
         selectedLabel,
         selectedImages: uploadedImageURLs,
         description,
         deliveryOption,
-        imageUrl ? imageUrl : null,
+        //imageUrl ? imageUrl : null,
         paid: false,
         price: null,
         // styleOfChair: styleOfChair,
