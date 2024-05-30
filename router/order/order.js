@@ -67,6 +67,7 @@ router.post(
         deliveryOption,
         imageUrl,
         paid: false,
+        price: null,
         // styleOfChair: styleOfChair,
         // seaters: seaters,
         // shape: shape,
