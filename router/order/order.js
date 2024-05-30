@@ -15,7 +15,7 @@ const b2 = new B2({
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-router.put("/cross/:orderId", authMiddleware, async (req, res) => {
+router.put("/cross/:orderId", async (req, res) => {
   try {
     const { orderId } = req.params;
 
