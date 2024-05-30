@@ -15,7 +15,7 @@ const b2 = new B2({
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-router.put("/cross/:orderId", async (req, res) => {
+router.put("/cross/:orderId", authMiddleware, async (req, res) => {
   try {
     const { orderId } = req.params;
 
@@ -83,13 +83,14 @@ router.post(
         userId: _id,
         username: username,
         email: email,
-        address: address,
-        phoneNumber: phoneNumber,
+        address: address ? address : null,
+        phoneNumber: phoneNumber ? phoneNumber : null,
+
         selectedLabel,
         selectedImages: uploadedImageURLs,
         description,
         deliveryOption,
-        imageUrl,
+        imageUrl ? imageUrl : null,
         paid: false,
         price: null,
         // styleOfChair: styleOfChair,
