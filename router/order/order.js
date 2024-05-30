@@ -15,6 +15,30 @@ const b2 = new B2({
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+router.put("/cross/:orderId", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    // Find the order by its ID
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    // Set the "paid" field to true
+    order.paid = true;
+
+    // Save the updated order
+    await order.save();
+
+    res.status(200).json({ message: "Order marked as paid successfully" });
+  } catch (error) {
+    console.error("Error marking order as paid:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 router.post(
   "/create",
   authMiddleware,
