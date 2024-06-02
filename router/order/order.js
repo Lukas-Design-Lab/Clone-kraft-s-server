@@ -77,7 +77,7 @@ router.put("/payment/:orderId", async (req, res) => {
 
     const newAmount = amountPaid / 1.075;
     console.log(newAmount, "newAmount");
-    order.paid = true;
+    //order.paid = true;
 
     if (installment) {
       order.isInstallment = true;
