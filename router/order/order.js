@@ -67,7 +67,7 @@ router.put("/progress/:orderId", async (req, res) => {
   try {
     const { orderId } = req.params;
     const { progress } = req.body;
-    consoel.log(progress, 'progress');
+    console.log(progress, 'progress');
     // Ensure progress is a number and within valid range
     const validatedProgress = Math.min(Number(progress), 100);
     const order = await Order.findById(orderId);
