@@ -163,6 +163,10 @@ const OrderSchema = new mongoose.Schema({
     default: false,
   },
   installments: [InstallmentSchema],
+  progress: {
+    type: Number,
+    default: 0, // Progress in percentage
+  },
 });
 
 module.exports = mongoose.model("Order", OrderSchema);

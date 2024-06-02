@@ -62,6 +62,31 @@ router.put("/update-price/:orderId", async (req, res) => {
   }
 });
 
+// Update order progress endpoint
+router.put("/progress/:orderId", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { progress } = req.body;
+
+    // Ensure progress is a number and within valid range
+    const validatedProgress = Math.min(Number(progress), 100);
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    order.progress = validatedProgress;
+
+    await order.save();
+
+    res.status(200).json({ message: "Order progress updated successfully", order });
+  } catch (error) {
+    console.error("Error updating order progress:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 router.put("/payment/:orderId", async (req, res) => {
   try {
     const { orderId } = req.params;
