@@ -63,7 +63,7 @@ router.put("/update-price/:orderId", async (req, res) => {
 });
 
 // Update order progress endpoint
-router.put("/progress/:orderId", async (req, res) => {
+router.put("/progress/:orderId", adminMiddleware, async (req, res) => {
   try {
     const { orderId } = req.params;
     const { progress } = req.body;
@@ -335,7 +335,7 @@ router.put("/:orderId", adminMiddleware, async (req, res) => {
 
 router.get("/admin", async (req, res) => {
   try {
-    const orders = await Order.find();
+    const orders = await Order.find().sort({ createdAt: -1 });
     res.status(200).json(orders);
   } catch (error) {
     console.error("Error fetching orders:", error);
@@ -357,7 +357,7 @@ router.get("/user/old", authMiddleware, async (req, res) => {
 
 router.get("/", adminMiddleware, async (req, res) => {
   try {
-    const orders = await Order.find();
+    const orders = await Order.find().sort({ createdAt: -1 });
     res.status(200).json(orders);
   } catch (error) {
     console.error("Error fetching orders:", error);
