@@ -7,7 +7,7 @@ const UpdateLogSchema = new mongoose.Schema({
   },
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Admin", // Assuming you have an Admin model
+    ref: "Admin",
     required: true,
   },
   adminUsername: {
@@ -38,6 +38,42 @@ const MessageSchema = new mongoose.Schema({
   },
 });
 
+const InstallmentSchema = new mongoose.Schema({
+  amountPaid: {
+    type: Number,
+    // required: true,
+  },
+  paidPercentage: {
+    type: Number,
+    // required: true,
+  },
+  datePaid: {
+    type: Date,
+    default: Date.now,
+  },
+  balanceLeft: {
+    type: Number,
+  },
+  selectedLabel: {
+    type: String,
+    required: true,
+  },
+  description: {
+    type: String,
+  },
+  deliveryOption: {
+    type: Number,
+  },
+  price: {
+    type: Number,
+    default: 0,
+  },
+  status: {
+    type: String,
+    default: "pending",
+  },
+});
+
 const OrderSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -54,14 +90,12 @@ const OrderSchema = new mongoose.Schema({
   },
   address: {
     type: String,
-    //required: true,
   },
   imageUrl: {
     type: String,
   },
   phoneNumber: {
     type: String,
-    //required: true,
   },
   selectedLabel: {
     type: String,
@@ -69,7 +103,7 @@ const OrderSchema = new mongoose.Schema({
   },
   selectedImages: [
     {
-      type: String, // Assuming you are storing image URLs
+      type: String,
       required: true,
     },
   ],
@@ -80,7 +114,8 @@ const OrderSchema = new mongoose.Schema({
     type: Number,
   },
   price: {
-    type: String,
+    type: Number,
+    default: 0,
   },
   paid: {
     type: Boolean,
@@ -104,12 +139,30 @@ const OrderSchema = new mongoose.Schema({
   totalPrice: {
     type: Number,
   },
-  messages: [MessageSchema], // Array for storing messages
+  messages: [MessageSchema],
   createdAt: {
     type: Date,
     default: Date.now,
   },
-  updatedAt: [UpdateLogSchema], // Array for logging updates
+  updatedAt: [UpdateLogSchema],
+  paidAt: {
+    type: Date,
+  },
+  amountPaid: {
+    type: Number,
+  },
+  balanceLeft: {
+    type: Number,
+  },
+  isInstallment: {
+    type: Boolean,
+    default: false,
+  },
+  isInstallmentPaid: {
+    type: Boolean,
+    default: false,
+  },
+  installments: [InstallmentSchema],
 });
 
 module.exports = mongoose.model("Order", OrderSchema);

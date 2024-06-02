@@ -10,6 +10,7 @@ const orders = require("./router/order/order");
 const bodyParser = require("body-parser");
 const admin = require("./router/admin/admin");
 const Order = require("./models/order");
+//const order = require("./models/order");
 //const paystackRoutes = require("./router/pay");
 const app = express();
 app.use(cors());
@@ -19,11 +20,39 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const dbURI =
   "mongodb+srv://ikennaibenemee:ikennaibenemee@cluster0.vheofmm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
+const updateOrders = async () => {
+  try {
+    const orders = await Order.find({});
+
+    const updatePromises = orders.map((order) => {
+      const balanceLeft = order.totalPrice - (order.amountPaid || 0);
+
+      return Order.updateOne(
+        { _id: order._id },
+        {
+          $set: {
+            isInstallmentPaid: false,
+            isInstallment: false,
+            installments: [],
+            amountPaid: 0,
+            balanceLeft: 0,
+          },
+        }
+      );
+    });
+
+    await Promise.all(updatePromises);
+    console.log("Orders updated successfully");
+  } catch (error) {
+    console.error("Error updating orders:", error);
+  }
+};
 mongoose
   .connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {
     console.log("Connected to MongoDB");
     startServer();
+    //updateOrders();
   })
   .catch((err) => console.error("Error connecting to MongoDB:", err));
 
@@ -102,7 +131,7 @@ app.get("/", (req, res) => {
   res.send("Welcome to the server!");
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 function startServer() {
   server.listen(PORT, () => {

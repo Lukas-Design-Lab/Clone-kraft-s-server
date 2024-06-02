@@ -15,6 +15,146 @@ const b2 = new B2({
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+router.put("/update-price/:orderId", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { newPrice } = req.body;
+
+    // Find the order by its ID
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    // Calculate new balance left
+    const amountPaid = order.amountPaid || 0;
+    const balanceLeft = newPrice - amountPaid;
+
+    // Update order details
+    order.price = newPrice;
+    order.totalPrice = newPrice;
+    order.balanceLeft = balanceLeft;
+
+    //---------------uncomment to test----------
+    // const amountPaid = 0;
+    // const balanceLeft = newPrice - amountPaid;
+
+    // // Update order details
+    // order.price = newPrice;
+    // order.totalPrice = newPrice;
+    // order.balanceLeft = balanceLeft;
+    // order.amountPaid = amountPaid
+
+    // Log the update
+    // order.updatedAt.push({
+    //   adminId,
+    //   adminUsername,
+    // });
+
+    // Save the updated order
+    await order.save();
+
+    res.status(200).json({ message: "Price updated successfully", order });
+  } catch (error) {
+    console.error("Error updating price:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+router.put("/payment/:orderId", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { installment, amountPaid } = req.body; // Expecting `installment` and `amountPaid` from the request body
+
+    console.log(amountPaid, "amountPaid");
+    // Find the order by its ID
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    const newAmount = amountPaid / 1.075;
+    console.log(newAmount, "newAmount");
+    order.paid = true;
+
+    if (installment) {
+      order.isInstallment = true;
+
+      // Calculate the total amount paid in installments
+      const totalInstallmentPaid = order.installments.reduce(
+        (total, installment) => total + installment.amountPaid,
+        0
+      );
+      console.log(totalInstallmentPaid, "totalInstallmentPaid");
+
+      if (totalInstallmentPaid < order.totalPrice) {
+        if (order.installments.length === 0) {
+          // Calculate the 60% initial payment if this is the first installment
+          const initialPayment = order.totalPrice * 0.6;
+          order.installments.push({
+            amountPaid: initialPayment,
+            isPaid: true,
+            datePaid: new Date(),
+            balanceLeft: order.totalPrice - initialPayment,
+            selectedLabel: order.selectedLabel,
+            description: order.description,
+            deliveryOption: order.deliveryOption,
+            price: order.price,
+            status: order.status,
+          });
+
+          order.amountPaid += initialPayment;
+          order.balanceLeft = order.totalPrice - initialPayment;
+        } else {
+          order.installments.push({
+            amountPaid: newAmount,
+            isPaid: true,
+            datePaid: new Date(),
+            balanceLeft: order.totalPrice - newAmount,
+            selectedLabel: order.selectedLabel,
+            description: order.description,
+            deliveryOption: order.deliveryOption,
+            price: order.price,
+            status: order.status,
+          });
+          order.amountPaid += newAmount;
+          order.balanceLeft = order.totalPrice - order.amountPaid;
+        }
+
+        // Check if the total price has been fully paid
+        if (order.amountPaid >= order.totalPrice) {
+          order.paid = true;
+          order.paidAt = new Date();
+        }
+
+        // Check if the new amount to be paid plus the balance will make the total installment paid equal to the price
+        if (totalInstallmentPaid + newAmount >= order.totalPrice) {
+          order.isInstallmentPaid = true;
+        }
+      } else if (totalInstallmentPaid === order.totalPrice) {
+        order.isInstallmentPaid = true;
+      }
+    } else {
+      // Handle full payment
+      order.paid = true;
+      order.amountPaid = newAmount;
+      order.balanceLeft = 0;
+      order.paidAt = new Date();
+    }
+
+    // Save the updated order
+    await order.save();
+
+    // Return the updated order
+    res.status(200).json({ message: "Payment processed successfully", order });
+  } catch (error) {
+    console.error("Error processing payment:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 router.put("/cross/:orderId", async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -27,7 +167,7 @@ router.put("/cross/:orderId", async (req, res) => {
     }
 
     // Set the "paid" field to true
-    order.paid = true;
+    order.paid = false;
 
     // Save the updated order
     await order.save();
@@ -46,8 +186,11 @@ router.post(
   upload.array("images"),
   async (req, res) => {
     try {
-      const { _id, username, email, 
-       // imageUrl, address, phoneNumber 
+      const {
+        _id,
+        username,
+        email,
+        // imageUrl, address, phoneNumber
       } = req.user; // Assuming the authMiddleware adds user information to req.user
       const {
         selectedLabel,
