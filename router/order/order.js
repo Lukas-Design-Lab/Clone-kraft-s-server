@@ -67,9 +67,9 @@ router.put("/progress/:orderId", async (req, res) => {
   try {
     const { orderId } = req.params;
     const { progress } = req.body;
-    console.log(progress, 'progress');
+    console.log(progress, "progress");
     // Ensure progress is a number and within valid range
-    const validatedProgress = Math.min(Number(progress), 100);
+    const validatedProgress = progress;
     const order = await Order.findById(orderId);
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
