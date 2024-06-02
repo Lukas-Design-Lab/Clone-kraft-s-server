@@ -125,7 +125,7 @@ router.put("/payment/:orderId", async (req, res) => {
 
         // Check if the total price has been fully paid
         if (order.amountPaid >= order.totalPrice) {
-          order.paid = true;
+          //order.paid = true;
           order.paidAt = new Date();
         }
 
