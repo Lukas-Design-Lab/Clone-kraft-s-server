@@ -5,6 +5,12 @@ const multer = require("multer");
 const Order = require("../../models/order");
 const authMiddleware = require("../../middleware/token/headerToken");
 const adminMiddleware = require("../../middleware/token/adminToken");
+const parseNumber = (value) => {
+  if (typeof value === "string") {
+    return parseFloat(value.replace(/,/g, ""));
+  }
+  return value;
+};
 
 const b2 = new B2({
   applicationKeyId: "e8b3c0128769",
@@ -91,9 +97,17 @@ router.put("/progress/:orderId", adminMiddleware, async (req, res) => {
 router.put("/payment/:orderId", async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { installment, amountPaid } = req.body; // Expecting `installment` and `amountPaid` from the request body
+    let { installment, amountPaid } = req.body; // Expecting `installment` and `amountPaid` from the request body
+
+    // Parse amountPaid to ensure it's a number
+    amountPaid = parseNumber(amountPaid);
+
+    if (isNaN(amountPaid)) {
+      return res.status(400).json({ error: "Invalid amountPaid value" });
+    }
 
     console.log(amountPaid, "amountPaid");
+
     // Find the order by its ID
     const order = await Order.findById(orderId);
 
@@ -101,9 +115,8 @@ router.put("/payment/:orderId", async (req, res) => {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    const newAmount = amountPaid / 1.075;
+    const newAmount = amountPaid;
     console.log(newAmount, "newAmount");
-    //order.paid = true;
 
     if (installment) {
       order.isInstallment = true;
@@ -113,17 +126,18 @@ router.put("/payment/:orderId", async (req, res) => {
         (total, installment) => total + installment.amountPaid,
         0
       );
-      console.log(totalInstallmentPaid, "totalInstallmentPaid");
 
-      if (totalInstallmentPaid < order.totalPrice) {
+      if (order.price > totalInstallmentPaid) {
         if (order.installments.length === 0) {
+          console.log(totalInstallmentPaid, "totalInstallmentPaid");
+
           // Calculate the 60% initial payment if this is the first installment
-          const initialPayment = order.totalPrice * 0.6;
+          const initialPayment = order.price * 0.6;
           order.installments.push({
             amountPaid: initialPayment,
             isPaid: true,
             datePaid: new Date(),
-            balanceLeft: order.totalPrice - initialPayment,
+            balanceLeft: order.price - initialPayment,
             selectedLabel: order.selectedLabel,
             description: order.description,
             deliveryOption: order.deliveryOption,
@@ -131,35 +145,40 @@ router.put("/payment/:orderId", async (req, res) => {
             status: order.status,
           });
 
-          order.amountPaid += initialPayment;
-          order.balanceLeft = order.totalPrice - initialPayment;
+          order.amountPaid = initialPayment; // Set the initial payment
+          order.balanceLeft = order.price - initialPayment;
         } else {
+          console.log(totalInstallmentPaid, "elsee");
+
+          const balanceLeft =
+            order.price - (totalInstallmentPaid + newAmount);
           order.installments.push({
             amountPaid: newAmount,
             isPaid: true,
             datePaid: new Date(),
-            balanceLeft: order.totalPrice - newAmount,
+            balanceLeft: balanceLeft,
             selectedLabel: order.selectedLabel,
             description: order.description,
             deliveryOption: order.deliveryOption,
             price: order.price,
             status: order.status,
           });
+
           order.amountPaid += newAmount;
-          order.balanceLeft = order.totalPrice - order.amountPaid;
+          order.balanceLeft = balanceLeft;
         }
 
         // Check if the total price has been fully paid
-        if (order.amountPaid >= order.totalPrice) {
-          //order.paid = true;
+        if (order.amountPaid >= order.price) {
+          order.paid = true;
           order.paidAt = new Date();
         }
 
         // Check if the new amount to be paid plus the balance will make the total installment paid equal to the price
-        if (totalInstallmentPaid + newAmount >= order.totalPrice) {
+        if (totalInstallmentPaid + newAmount >= order.price) {
           order.isInstallmentPaid = true;
         }
-      } else if (totalInstallmentPaid === order.totalPrice) {
+      } else if (totalInstallmentPaid === order.price) {
         order.isInstallmentPaid = true;
       }
     } else {
@@ -173,7 +192,7 @@ router.put("/payment/:orderId", async (req, res) => {
     // Save the updated order
     await order.save();
 
-    // Return the updated order
+    // Return the updated order, making sure to include the installments array
     res.status(200).json({ message: "Payment processed successfully", order });
   } catch (error) {
     console.error("Error processing payment:", error);
@@ -343,7 +362,28 @@ router.get("/admin", async (req, res) => {
   }
 });
 
-// Get orders for a specific user
+//--------------------- set messages to read -----------------
+router.put("/messages/:orderId/:messageId/read", async (req, res) => {
+  try {
+    const { orderId, messageId } = req.params;
+
+    const order = await Order.findOneAndUpdate(
+      { _id: orderId, "messages._id": messageId },
+      { $set: { "messages.$.isRead": true } },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ error: "Order or message not found" });
+    }
+
+    res.status(200).json({ message: "Message marked as read", order });
+  } catch (error) {
+    console.error("Error updating message:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 router.get("/user/old", authMiddleware, async (req, res) => {
   try {
     const userId = req.user._id;
@@ -371,11 +411,7 @@ router.get("/users", authMiddleware, async (req, res) => {
     const userId = req.user._id;
 
     const orders = await Order.find({ userId });
-
-    // Reverse the array of orders
     const reversedOrders = orders.reverse();
-
-    // Return reversed orders as response
     res.status(200).json({ success: true, orders: reversedOrders });
   } catch (error) {
     console.error("Error fetching orders:", error);

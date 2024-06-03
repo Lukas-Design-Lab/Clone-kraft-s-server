@@ -16,7 +16,12 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
+const parseNumber = (value) => {
+  if (typeof value === "string") {
+    return parseFloat(value?.replace(/,/g, ""));
+  }
+  return value;
+};
 const dbURI =
   "mongodb+srv://ikennaibenemee:ikennaibenemee@cluster0.vheofmm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
@@ -47,14 +52,47 @@ const updateOrders = async () => {
     console.error("Error updating orders:", error);
   }
 };
+
 mongoose
   .connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {
     console.log("Connected to MongoDB");
     startServer();
     //updateOrders();
+    //updateOrder();
   })
   .catch((err) => console.error("Error connecting to MongoDB:", err));
+
+// const updateOrder = async () => {
+//   try {
+//     // Fetch all orders
+//     const orders = await Order.find({});
+
+//     // Iterate over each order and update the numeric fields
+//     for (const order of orders) {
+//       // Update the price field
+//       order.price = parseNumber(order.price);
+
+//       // Update the amountPaid field to ensure it's a valid number
+//       order.amountPaid = parseNumber(order.amountPaid);
+
+//       // Update the installments to ensure each amountPaid is a valid number
+//       order.installments = order.installments.map((installment) => {
+//         installment.amountPaid = parseNumber(installment.amountPaid);
+//         return installment;
+//       });
+
+//       // Save the updated order
+//       await order.save();
+//     }
+
+//     console.log("All orders have been updated successfully.");
+//     mongoose.connection.close();
+//   } catch (error) {
+//     console.error("Error updating orders:", error);
+//     mongoose.connection.close();
+//   }
+// };
 
 const server = http.createServer(app);
 const io = socketIo(server, {

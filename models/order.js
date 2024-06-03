@@ -41,11 +41,11 @@ const MessageSchema = new mongoose.Schema({
 const InstallmentSchema = new mongoose.Schema({
   amountPaid: {
     type: Number,
-    // required: true,
+    required: true,
   },
-  paidPercentage: {
-    type: Number,
-    // required: true,
+  isPaid: {
+    type: Boolean,
+    default: true,
   },
   datePaid: {
     type: Date,
