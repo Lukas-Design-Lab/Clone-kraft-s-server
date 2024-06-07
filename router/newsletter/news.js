@@ -1,6 +1,6 @@
 // routes/subscriptionRoutes.js
 const express = require("express");
-const Subscription = require("../../models/Subscription");
+const Subscription = require("../../models/subscription");
 const router = express.Router();
 //const Subscription = require("../models/Subscription");
 
