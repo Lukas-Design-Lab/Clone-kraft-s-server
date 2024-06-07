@@ -94,6 +94,46 @@ router.put("/progress/:orderId", adminMiddleware, async (req, res) => {
   }
 });
 
+router.get("/single/:id", async (req, res) => {
+  try {
+    console.log(req.params.id, "req.params.id");
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ msg: "Order not found" });
+    }
+    res.json(order);
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === "ObjectId") {
+      return res.status(404).json({ msg: "Order not found" });
+    }
+    res.status(500).send("Server Error");
+  }
+});
+
+router.put("/rate/:orderId", adminMiddleware, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { rate } = req.body;
+    console.log(rate, "progress");
+    // Ensure progress is a number and within valid range
+    //const validatedProgress = progress;
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    order.rated = true;
+
+    await order.save();
+
+    res.status(200).json({ message: "Order rated successfully", order });
+  } catch (error) {
+    console.error("Error rating order:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 router.put("/payment/:orderId", async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -150,8 +190,7 @@ router.put("/payment/:orderId", async (req, res) => {
         } else {
           console.log(totalInstallmentPaid, "elsee");
 
-          const balanceLeft =
-            order.price - (totalInstallmentPaid + newAmount);
+          const balanceLeft = order.price - (totalInstallmentPaid + newAmount);
           order.installments.push({
             amountPaid: newAmount,
             isPaid: true,
@@ -166,20 +205,24 @@ router.put("/payment/:orderId", async (req, res) => {
 
           order.amountPaid += newAmount;
           order.balanceLeft = balanceLeft;
+          order.status = "in Progress";
         }
 
         // Check if the total price has been fully paid
         if (order.amountPaid >= order.price) {
           order.paid = true;
           order.paidAt = new Date();
+          order.status = "in Progress";
         }
 
         // Check if the new amount to be paid plus the balance will make the total installment paid equal to the price
         if (totalInstallmentPaid + newAmount >= order.price) {
           order.isInstallmentPaid = true;
+          order.status = "in Progress";
         }
       } else if (totalInstallmentPaid === order.price) {
         order.isInstallmentPaid = true;
+        order.status = "in Progress";
       }
     } else {
       // Handle full payment
@@ -187,6 +230,7 @@ router.put("/payment/:orderId", async (req, res) => {
       order.amountPaid = newAmount;
       order.balanceLeft = 0;
       order.paidAt = new Date();
+      order.status = "in Progress";
     }
 
     // Save the updated order
@@ -224,6 +268,108 @@ router.put("/cross/:orderId", async (req, res) => {
   }
 });
 
+router.put("/update-progress/:orderId", upload.array("images"), async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    console.log(orderId, 'orderId')
+    const uploadedImageURLs = [];
+
+    for (const file of req.files) {
+      const fileName = `orders/images/${Date.now()}_${file.originalname.replace(
+        /\s+/g,
+        "_"
+      )}`;
+      await b2.authorize(); // Authorize with Backblaze B2
+      const response = await b2.getUploadUrl({
+        bucketId: "ce38bb235c0071f288f70619",
+      });
+      const uploadResponse = await b2.uploadFile({
+        uploadUrl: response.data.uploadUrl,
+        uploadAuthToken: response.data.authorizationToken,
+        fileName: fileName,
+        data: file.buffer,
+      });
+
+      const bucketName = "Clonekraft";
+      const uploadedFileName = uploadResponse.data.fileName;
+      const imageURL = `https://f005.backblazeb2.com/file/${bucketName}/${uploadedFileName}`;
+      uploadedImageURLs.push(imageURL);
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    order.progressImages.push(...uploadedImageURLs);
+    await order.save();
+
+    res
+      .status(200)
+      .json({ message: "Progress images updated successfully", order });
+  } catch (error) {
+    console.error("Error updating progress images:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+router.post('/request-delivery', async (req, res) => {
+  try {
+    const { orderId } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    order.requestDelivery = true;
+    await order.save();
+
+    res.status(200).json({ message: 'Delivery requested successfully', order });
+  } catch (error) {
+    console.error('Error requesting delivery:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Route to confirm delivery
+router.post('/confirm-delivery', async (req, res) => {
+  try {
+    const { orderId } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    order.confirmDelivery = true;
+    await order.save();
+
+    res.status(200).json({ message: 'Delivery confirmed successfully', order });
+  } catch (error) {
+    console.error('Error confirming delivery:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Route to mark as delivered
+router.post('/mark-delivered', async (req, res) => {
+  try {
+    const { orderId } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    order.isDelivered = true;
+    await order.save();
+
+    res.status(200).json({ message: 'Order marked as delivered successfully', order });
+  } catch (error) {
+    console.error('Error marking order as delivered:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 router.post(
   "/create",
   authMiddleware,
@@ -325,7 +471,9 @@ router.put("/:orderId", adminMiddleware, async (req, res) => {
     // Construct update object based on provided fields
     const updateObject = {};
     if (status) {
-      if (["completed", "cancelled", "pending"].includes(status)) {
+      if (
+        ["completed", "cancelled", "pending", "in Progress"].includes(status)
+      ) {
         // Check if status is valid
         updateObject.status = status;
       } else {

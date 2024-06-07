@@ -107,6 +107,12 @@ const OrderSchema = new mongoose.Schema({
       required: true,
     },
   ],
+  progressImages: [
+    {
+      type: String,
+      required: true,
+    },
+  ],
   description: {
     type: String,
   },
@@ -116,6 +122,18 @@ const OrderSchema = new mongoose.Schema({
   price: {
     type: Number,
     default: 0,
+  },
+  requestDelivery: {
+    type: Boolean,
+    default: false,
+  },
+  confirmDelivery: {
+    type: Boolean,
+    default: false,
+  },
+  isDelivered: {
+    type: Boolean,
+    default: false,
   },
   paid: {
     type: Boolean,
@@ -138,6 +156,10 @@ const OrderSchema = new mongoose.Schema({
   },
   totalPrice: {
     type: Number,
+  },
+  rated: {
+    type: Boolean,
+    default: false,
   },
   messages: [MessageSchema],
   createdAt: {

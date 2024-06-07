@@ -10,6 +10,8 @@ const orders = require("./router/order/order");
 const bodyParser = require("body-parser");
 const admin = require("./router/admin/admin");
 const Order = require("./models/order");
+const newsletter = require("./router/newsletter/news");
+const rating = require("./router/rating/rating");
 //const order = require("./models/order");
 //const paystackRoutes = require("./router/pay");
 const app = express();
@@ -104,6 +106,8 @@ const io = socketIo(server, {
 app.use("/auth", auth);
 app.use("/order", orders);
 app.use("/admin", admin);
+app.use("/newsletter", newsletter);
+app.use("/rating", rating);
 //app.use("/api/paystack", paystackRoutes); // Use the Paystack router
 
 // Map to keep track of which users are typing in each room
@@ -169,7 +173,7 @@ app.get("/", (req, res) => {
   res.send("Welcome to the server!");
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 
 function startServer() {
   server.listen(PORT, () => {
