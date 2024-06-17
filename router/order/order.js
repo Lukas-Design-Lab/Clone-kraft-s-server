@@ -5,6 +5,7 @@ const multer = require("multer");
 const Order = require("../../models/order");
 const authMiddleware = require("../../middleware/token/headerToken");
 const adminMiddleware = require("../../middleware/token/adminToken");
+const { sendOrderNotification } = require("../../utils/sendMailOrder");
 const parseNumber = (value) => {
   if (typeof value === "string") {
     return parseFloat(value.replace(/,/g, ""));

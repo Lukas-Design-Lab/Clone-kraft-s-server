@@ -173,7 +173,7 @@ app.get("/", (req, res) => {
   res.send("Welcome to the server!");
 });
 
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3003;
 
 function startServer() {
   server.listen(PORT, () => {
