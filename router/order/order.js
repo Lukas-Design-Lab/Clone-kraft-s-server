@@ -77,14 +77,8 @@ router.post(
         selectedImages: uploadedImageURLs,
         description,
         deliveryOption,
-        //imageUrl ? imageUrl : null,
         paid: false,
         price: null,
-        // styleOfChair: styleOfChair,
-        // seaters: seaters,
-        // shape: shape,
-        // choice: choice,
-        // price: price,
       });
       const adminEmails = [
         "Gbolahanifeoluwa10@gmail.com",
@@ -96,7 +90,7 @@ router.post(
         id: order._id,
         customerName: username,
         orderDate: new Date(order.createdAt).toLocaleDateString(),
-        totalAmount: order.price || "Pending",
+        totalAmount:  "Pending",
       };
       await sendOrderNotification(adminEmails, orderDetails);
       res.status(201).json({ message: "Order created successfully", order });
