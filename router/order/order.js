@@ -21,6 +21,107 @@ const b2 = new B2({
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+router.post(
+  "/create",
+  authMiddleware,
+  authMiddleware,
+  upload.array("images"),
+  async (req, res) => {
+    try {
+      const {
+        _id,
+        username,
+        email,
+        // imageUrl, address, phoneNumber
+      } = req.user; // Assuming the authMiddleware adds user information to req.user
+      const {
+        selectedLabel,
+        description,
+        deliveryOption,
+        // seaters,
+        // shape,
+        // styleOfChair,
+        // choice,
+        // price,
+      } = req.body;
+      const uploadedImageURLs = [];
+      for (const file of req.files) {
+        const fileName = `orders/images/${Date.now()}_${file.originalname.replace(
+          /\s+/g,
+          "_"
+        )}`;
+        await b2.authorize(); // Authorize with Backblaze B2
+        const response = await b2.getUploadUrl({
+          bucketId: "ce38bb235c0071f288f70619",
+        });
+        const uploadResponse = await b2.uploadFile({
+          uploadUrl: response.data.uploadUrl,
+          uploadAuthToken: response.data.authorizationToken,
+          fileName: fileName,
+          data: file.buffer,
+        });
+        const bucketName = "Clonekraft";
+        const uploadedFileName = uploadResponse.data.fileName;
+        const imageURL = `https://f005.backblazeb2.com/file/${bucketName}/${uploadedFileName}`;
+        uploadedImageURLs.push(imageURL);
+      }
+
+      const order = await Order.create({
+        userId: _id,
+        username: username,
+        email: email,
+        //address: address ? address : null,
+        //phoneNumber: phoneNumber ? phoneNumber : null,
+
+        selectedLabel,
+        selectedImages: uploadedImageURLs,
+        description,
+        deliveryOption,
+        //imageUrl ? imageUrl : null,
+        paid: false,
+        price: null,
+        // styleOfChair: styleOfChair,
+        // seaters: seaters,
+        // shape: shape,
+        // choice: choice,
+        // price: price,
+      });
+      const adminEmails = [
+        "Gbolahanifeoluwa10@gmail.com",
+        "9jacarpenter@gmail.com",
+        "ibenemeikenna96@gmail.com",
+      ];
+
+      const orderDetails = {
+        id: order._id,
+        customerName: username,
+        orderDate: new Date(order.createdAt).toLocaleDateString(),
+        totalAmount: order.price || "Pending",
+      };
+      await sendOrderNotification(adminEmails, orderDetails);
+      res.status(201).json({ message: "Order created successfully", order });
+    } catch (error) {
+      console.error("Error creating order:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+);
+
+router.delete("/", async (req, res) => {
+  try {
+    // Delete all documents from the Order collection
+    const deletedOrders = await Order.deleteMany({});
+
+    res.json({
+      message: "All orders deleted successfully",
+      deletedCount: deletedOrders.deletedCount,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
 router.put("/update-price/:orderId", async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -268,132 +369,15 @@ router.put("/cross/:orderId", async (req, res) => {
   }
 });
 
-router.put("/update-progress/:orderId", upload.array("images"), async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    console.log(orderId, 'orderId')
-    const uploadedImageURLs = [];
-
-    for (const file of req.files) {
-      const fileName = `orders/images/${Date.now()}_${file.originalname.replace(
-        /\s+/g,
-        "_"
-      )}`;
-      await b2.authorize(); // Authorize with Backblaze B2
-      const response = await b2.getUploadUrl({
-        bucketId: "ce38bb235c0071f288f70619",
-      });
-      const uploadResponse = await b2.uploadFile({
-        uploadUrl: response.data.uploadUrl,
-        uploadAuthToken: response.data.authorizationToken,
-        fileName: fileName,
-        data: file.buffer,
-      });
-
-      const bucketName = "Clonekraft";
-      const uploadedFileName = uploadResponse.data.fileName;
-      const imageURL = `https://f005.backblazeb2.com/file/${bucketName}/${uploadedFileName}`;
-      uploadedImageURLs.push(imageURL);
-    }
-
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    order.progressImages.push(...uploadedImageURLs);
-    await order.save();
-
-    res
-      .status(200)
-      .json({ message: "Progress images updated successfully", order });
-  } catch (error) {
-    console.error("Error updating progress images:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-router.post('/request-delivery', async (req, res) => {
-  try {
-    const { orderId } = req.body;
-
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
-
-    order.requestDelivery = true;
-    await order.save();
-
-    res.status(200).json({ message: 'Delivery requested successfully', order });
-  } catch (error) {
-    console.error('Error requesting delivery:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-// Route to confirm delivery
-router.post('/confirm-delivery', async (req, res) => {
-  try {
-    const { orderId } = req.body;
-
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
-
-    order.confirmDelivery = true;
-    await order.save();
-
-    res.status(200).json({ message: 'Delivery confirmed successfully', order });
-  } catch (error) {
-    console.error('Error confirming delivery:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-// Route to mark as delivered
-router.post('/mark-delivered', async (req, res) => {
-  try {
-    const { orderId } = req.body;
-
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
-
-    order.isDelivered = true;
-    await order.save();
-
-    res.status(200).json({ message: 'Order marked as delivered successfully', order });
-  } catch (error) {
-    console.error('Error marking order as delivered:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-router.post(
-  "/create",
-  authMiddleware,
-  authMiddleware,
+router.put(
+  "/update-progress/:orderId",
   upload.array("images"),
   async (req, res) => {
     try {
-      const {
-        _id,
-        username,
-        email,
-        // imageUrl, address, phoneNumber
-      } = req.user; // Assuming the authMiddleware adds user information to req.user
-      const {
-        selectedLabel,
-        description,
-        deliveryOption,
-        // seaters,
-        // shape,
-        // styleOfChair,
-        // choice,
-        // price,
-      } = req.body;
+      const { orderId } = req.params;
+      console.log(orderId, "orderId");
       const uploadedImageURLs = [];
+
       for (const file of req.files) {
         const fileName = `orders/images/${Date.now()}_${file.originalname.replace(
           /\s+/g,
@@ -409,40 +393,90 @@ router.post(
           fileName: fileName,
           data: file.buffer,
         });
+
         const bucketName = "Clonekraft";
         const uploadedFileName = uploadResponse.data.fileName;
         const imageURL = `https://f005.backblazeb2.com/file/${bucketName}/${uploadedFileName}`;
         uploadedImageURLs.push(imageURL);
       }
 
-      const order = await Order.create({
-        userId: _id,
-        username: username,
-        email: email,
-        //address: address ? address : null,
-        //phoneNumber: phoneNumber ? phoneNumber : null,
+      const order = await Order.findById(orderId);
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
 
-        selectedLabel,
-        selectedImages: uploadedImageURLs,
-        description,
-        deliveryOption,
-        //imageUrl ? imageUrl : null,
-        paid: false,
-        price: null,
-        // styleOfChair: styleOfChair,
-        // seaters: seaters,
-        // shape: shape,
-        // choice: choice,
-        // price: price,
-      });
+      order.progressImages.push(...uploadedImageURLs);
+      await order.save();
 
-      res.status(201).json({ message: "Order created successfully", order });
+      res
+        .status(200)
+        .json({ message: "Progress images updated successfully", order });
     } catch (error) {
-      console.error("Error creating order:", error);
+      console.error("Error updating progress images:", error);
       res.status(500).json({ error: "Internal Server Error" });
     }
   }
 );
+router.post("/request-delivery", async (req, res) => {
+  try {
+    const { orderId } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    order.requestDelivery = true;
+    await order.save();
+
+    res.status(200).json({ message: "Delivery requested successfully", order });
+  } catch (error) {
+    console.error("Error requesting delivery:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Route to confirm delivery
+router.post("/confirm-delivery", async (req, res) => {
+  try {
+    const { orderId } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    order.confirmDelivery = true;
+    await order.save();
+
+    res.status(200).json({ message: "Delivery confirmed successfully", order });
+  } catch (error) {
+    console.error("Error confirming delivery:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Route to mark as delivered
+router.post("/mark-delivered", async (req, res) => {
+  try {
+    const { orderId } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    order.isDelivered = true;
+    await order.save();
+
+    res
+      .status(200)
+      .json({ message: "Order marked as delivered successfully", order });
+  } catch (error) {
+    console.error("Error marking order as delivered:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 router.get("/messages/:orderId", async (req, res) => {
   try {

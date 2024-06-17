@@ -16,6 +16,16 @@ const { sendWelcomeEmail } = require("../../utils/sendWelcomeEmail");
 // const User = require("../models/user");
 // const OTPModel = require("../models/otp");
 // const { sendOTP } = require("../utils/sendMail");
+
+// router.delete('/del', async (req, res) => {
+//   try {
+//     await User.deleteMany({});
+//     res.status(200).send({ message: 'All users have been deleted' });
+//   } catch (error) {
+//     res.status(500).send({ error: 'An error occurred while deleting users' });
+//   }
+// });
+
 router.post("/update", async (req, res) => {
   const { username, email } = req.body;
 
