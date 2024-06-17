@@ -90,7 +90,7 @@ router.post(
         id: order._id,
         customerName: username,
         orderDate: new Date(order.createdAt).toLocaleDateString(),
-        totalAmount:  "Pending",
+        totalAmount: "Pending",
       };
       await sendOrderNotification(adminEmails, orderDetails);
       res.status(201).json({ message: "Order created successfully", order });
