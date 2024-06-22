@@ -28,9 +28,10 @@ const AdminSchema = new mongoose.Schema({
   },
   // userType: {
   //   type: String,
-  //   default: null,
-  //   required: true,
+  //   default: "admin",
+  //   //required: true,
   // },
+  userType:{ type: String, default:'yehh'},
   admin: { type: Boolean },
 });
 

@@ -115,41 +115,35 @@ router.post("/resend", async (req, res) => {
 router.post("/register", async (req, res) => {
   const schema = Joi.object({
     password: Joi.string().min(6).max(200).required(),
-    email: Joi.string().min(6).max(30).required(),
+    email: Joi.string().min(6).max(30).required().email(),
     username: Joi.string().min(3).max(30).required(),
+    phoneNumber: Joi.string().min(10).max(15).required(),
+    address: Joi.string().min(5).max(200).required(),
   });
 
   const { error } = schema.validate(req.body);
   if (error) return res.status(400).send(error.details[0].message);
 
-  let user = await User.findOne({ email: req.body.email.toLowerCase() });
-  if (user) return res.status(400).send("User already exists.");
-
-  user = new User({
-    username: req.body.username,
-    password: req.body.password,
-    email: req.body.email.toLowerCase(),
-  });
-
-  const salt = await bcrypt.genSalt(10);
-  user.password = await bcrypt.hash(user.password, salt);
-
   try {
-    // Generate OTP
-    //const otp = Math.random().toString().slice(2, 8); // Generate a 6-digit OTP
+    let user = await User.findOne({ email: req.body.email.toLowerCase() });
+    if (user) return res.status(400).send("User already exists.");
 
-    // Save OTP to database
-    //await OTPModel.create({ email: user.email, otp });
+    user = new User({
+      username: req.body.username,
+      password: req.body.password,
+      email: req.body.email.toLowerCase(),
+      phoneNumber: req.body.phoneNumber,
+      address: req.body.address,
+    });
 
-    // Send OTP to user's email
-    //await sendOTP(user.email, otp);
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(user.password, salt);
 
-    // Save user to the database
     await user.save();
     await sendWelcomeEmail(user.email);
+
     const token = genAuthToken(user);
     return res.status(200).json({ user, token });
-    //res.send("OTP sent to your email for verification.");
   } catch (error) {
     res.status(500).send("Internal server error");
   }

@@ -112,6 +112,7 @@ router.post("/create", async (req, res) => {
       username,
       fullname,
       admin: true,
+      //userType: "admins",
     });
     res
       .status(201)
