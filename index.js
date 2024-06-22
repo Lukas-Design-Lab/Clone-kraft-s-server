@@ -15,6 +15,8 @@ const rating = require("./router/rating/rating");
 //const order = require("./models/order");
 //const paystackRoutes = require("./router/pay");
 const app = express();
+//const smsRouter = require("./router/smsRouter");
+
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -108,6 +110,7 @@ app.use("/order", orders);
 app.use("/admin", admin);
 app.use("/newsletter", newsletter);
 app.use("/rating", rating);
+//app.use("/messaging", smsRouter);
 //app.use("/api/paystack", paystackRoutes); // Use the Paystack router
 
 // Map to keep track of which users are typing in each room

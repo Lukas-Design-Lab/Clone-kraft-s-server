@@ -6,6 +6,14 @@ const Order = require("../../models/order");
 const authMiddleware = require("../../middleware/token/headerToken");
 const adminMiddleware = require("../../middleware/token/adminToken");
 const { sendOrderNotification } = require("../../utils/sendMailOrder");
+const User = require("../../models/user");
+const { sendSMS } = require("../smsRouter");
+const {
+  constructStatusUpdateEmail,
+  constructPriceUpdateEmail,
+  sendEmail,
+  sendProgressUpdateNotification,
+} = require("../../utils/sendUpdateEmails");
 const parseNumber = (value) => {
   if (typeof value === "string") {
     return parseFloat(value.replace(/,/g, ""));
@@ -18,33 +26,118 @@ const b2 = new B2({
   applicationKey: "0058f4534e105eb24f3b135703608c66720edf0beb",
 });
 
+// Function to format phone number
+const formatPhoneNumber = (phoneNumber) => {
+  // Remove leading zero and add +234
+  if (phoneNumber.startsWith("0")) {
+    return "+234" + phoneNumber.slice(1);
+  }
+  return phoneNumber;
+};
+
 // Multer storage configuration for file upload
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+// router.post(
+//   "/create",
+//   authMiddleware,
+//   authMiddleware,
+//   upload.array("images"),
+//   async (req, res) => {
+//     try {
+//       const {
+//         _id,
+//         username,
+//         email,
+//         // imageUrl, address, phoneNumber
+//       } = req.user; // Assuming the authMiddleware adds user information to req.user
+//       const {
+//         selectedLabel,
+//         description,
+//         deliveryOption,
+//         // seaters,
+//         // shape,
+//         // styleOfChair,
+//         // choice,
+//         // price,
+//       } = req.body;
+//       const uploadedImageURLs = [];
+//       for (const file of req.files) {
+//         const fileName = `orders/images/${Date.now()}_${file.originalname.replace(
+//           /\s+/g,
+//           "_"
+//         )}`;
+//         await b2.authorize(); // Authorize with Backblaze B2
+//         const response = await b2.getUploadUrl({
+//           bucketId: "ce38bb235c0071f288f70619",
+//         });
+//         const uploadResponse = await b2.uploadFile({
+//           uploadUrl: response.data.uploadUrl,
+//           uploadAuthToken: response.data.authorizationToken,
+//           fileName: fileName,
+//           data: file.buffer,
+//         });
+//         const bucketName = "Clonekraft";
+//         const uploadedFileName = uploadResponse.data.fileName;
+//         const imageURL = `https://f005.backblazeb2.com/file/${bucketName}/${uploadedFileName}`;
+//         uploadedImageURLs.push(imageURL);
+//       }
+
+//       const order = await Order.create({
+//         userId: _id,
+//         username: username,
+//         email: email,
+//         //address: address ? address : null,
+//         //phoneNumber: phoneNumber ? phoneNumber : null,
+
+//         selectedLabel,
+//         selectedImages: uploadedImageURLs,
+//         description,
+//         deliveryOption,
+//         paid: false,
+//         price: null,
+//       });
+//       const adminEmails = [
+//         "Gbolahanifeoluwa10@gmail.com",
+//         "9jacarpenter@gmail.com",
+//         "ibenemeikenna96@gmail.com",
+//       ];
+
+//       const orderDetails = {
+//         id: order._id,
+//         customerName: username,
+//         orderDate: new Date(order.createdAt).toLocaleDateString(),
+//         totalAmount: "Pending",
+//       };
+//       await sendOrderNotification(adminEmails, orderDetails);
+//       res.status(201).json({ message: "Order created successfully", order });
+//     } catch (error) {
+//       console.error("Error creating order:", error);
+//       res.status(500).json({ error: "Internal Server Error" });
+//     }
+//   }
+// );
+
 router.post(
   "/create",
-  authMiddleware,
   authMiddleware,
   upload.array("images"),
   async (req, res) => {
     try {
-      const {
-        _id,
-        username,
-        email,
-        // imageUrl, address, phoneNumber
-      } = req.user; // Assuming the authMiddleware adds user information to req.user
-      const {
-        selectedLabel,
-        description,
-        deliveryOption,
-        // seaters,
-        // shape,
-        // styleOfChair,
-        // choice,
-        // price,
-      } = req.body;
+      const { _id } = req.user; // Assuming the authMiddleware adds user ID to req.user
+
+      // Find the user by ID
+      const user = await User.findById(_id).select(
+        "username email address phoneNumber"
+      );
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { username, email, address, phoneNumber } = user;
+      const { selectedLabel, description, deliveryOption } = req.body;
+
       const uploadedImageURLs = [];
       for (const file of req.files) {
         const fileName = `orders/images/${Date.now()}_${file.originalname.replace(
@@ -71,9 +164,8 @@ router.post(
         userId: _id,
         username: username,
         email: email,
-        //address: address ? address : null,
-        //phoneNumber: phoneNumber ? phoneNumber : null,
-
+        address: address || null,
+        phoneNumber: phoneNumber || null,
         selectedLabel,
         selectedImages: uploadedImageURLs,
         description,
@@ -81,6 +173,7 @@ router.post(
         paid: false,
         price: null,
       });
+
       const adminEmails = [
         "Gbolahanifeoluwa10@gmail.com",
         "9jacarpenter@gmail.com",
@@ -93,7 +186,25 @@ router.post(
         orderDate: new Date(order.createdAt).toLocaleDateString(),
         totalAmount: "Pending",
       };
-      await sendOrderNotification(adminEmails, orderDetails);
+      await sendOrderNotification(adminEmails, orderDetails, email);
+
+      // Format the phone number before sending SMS
+      const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
+
+      if (formattedPhoneNumber) {
+        const message = `Hello ${username}, your order on Clonekraft has been placed successfully. We will notify you shortly once the price is calculated by the admin.`;
+        sendSMS(formattedPhoneNumber, message)
+          .then(() => {
+            console.log(`SMS sent successfully to ${formattedPhoneNumber}`);
+          })
+          .catch((error) => {
+            console.error(
+              `Failed to send SMS to ${formattedPhoneNumber}:`,
+              error
+            );
+          });
+      }
+
       res.status(201).json({ message: "Order created successfully", order });
     } catch (error) {
       console.error("Error creating order:", error);
@@ -102,6 +213,23 @@ router.post(
   }
 );
 
+router.delete("/:orderId", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    // Find the order by its ID and delete it
+    const deletedOrder = await Order.findByIdAndDelete(orderId);
+
+    if (!deletedOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.json({ message: "Order deleted successfully", order: deletedOrder });
+  } catch (error) {
+    console.error("Error deleting order:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 router.delete("/", async (req, res) => {
   try {
     // Delete all documents from the Order collection
@@ -169,9 +297,10 @@ router.put("/progress/:orderId", adminMiddleware, async (req, res) => {
   try {
     const { orderId } = req.params;
     const { progress } = req.body;
-    console.log(progress, "progress");
+
     // Ensure progress is a number and within valid range
     const validatedProgress = progress;
+
     const order = await Order.findById(orderId);
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
@@ -180,6 +309,31 @@ router.put("/progress/:orderId", adminMiddleware, async (req, res) => {
     order.progress = validatedProgress;
 
     await order.save();
+
+    // Fetch user details (assuming you have User model and order has userId)
+    const user = await User.findById(order.userId).select(
+      "username email phoneNumber"
+    );
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const { username, email, phoneNumber } = user;
+
+    // Format the phone number before sending SMS
+    const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
+
+    // Send SMS and email to user for progress update
+    const message = `Dear ${username}, the progress for your Clonekraft  order (${order._id}) has been updated to ${progress}%.`;
+    sendSMS(formattedPhoneNumber, message)
+      .then(() => {
+        console.log(`SMS sent successfully to ${formattedPhoneNumber}`);
+      })
+      .catch((error) => {
+        console.error(`Failed to send SMS to ${formattedPhoneNumber}:`, error);
+      });
+
+    sendProgressUpdateNotification(email, username, order._id, progress); // Send email to user
 
     res
       .status(200)
@@ -495,31 +649,85 @@ router.get("/messages/:orderId", async (req, res) => {
 router.put("/:orderId", adminMiddleware, async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { status, price, paid } = req.body; // Destructure status, price, and paid from req.body
+    const { status, price, paid } = req.body;
 
-    // Construct update object based on provided fields
     const updateObject = {};
     if (status) {
       if (
         ["completed", "cancelled", "pending", "in Progress"].includes(status)
       ) {
-        // Check if status is valid
         updateObject.status = status;
       } else {
-        return res.status(400).json({ error: "Invalid status" }); // Return error for invalid status
+        return res.status(400).json({ error: "Invalid status" });
       }
     }
-    if (price) updateObject.price = price;
-    if (paid !== undefined) updateObject.paid = paid; // Check for undefined to allow setting paid to false
+    if (price !== undefined) {
+      // Validate price to ensure it's a number
+      const parsedPrice = parseFloat(price);
+      if (isNaN(parsedPrice)) {
+        return res.status(400).json({ error: "Invalid price format" });
+      }
+      updateObject.price = parsedPrice;
 
-    const order = await Order.findByIdAndUpdate(
-      orderId,
-      updateObject, // Use updateObject in findByIdAndUpdate
-      { new: true }
-    );
+      // Send price update notification and update order
+      // (your existing code for sending notifications and updating order)
+    }
+    if (paid !== undefined) {
+      updateObject.paid = paid;
+    }
+
+    const order = await Order.findByIdAndUpdate(orderId, updateObject, {
+      new: true,
+    });
 
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
+    }
+
+    // Send status update notification
+    if (status) {
+      const user = await User.findById(order.userId).select(
+        "username email phoneNumber"
+      );
+      if (user) {
+        const { username, email, phoneNumber } = user;
+        const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
+
+        const message = `Dear ${username}, the status for your order on Clonekraft with ID (${order._id}) has been updated to ${status}.`;
+        sendSMS(formattedPhoneNumber, message)
+          .then(() => {
+            console.log(`SMS sent successfully to ${formattedPhoneNumber}`);
+          })
+          .catch((error) => {
+            console.error(
+              `Failed to send SMS to ${formattedPhoneNumber}:`,
+              error
+            );
+          });
+
+        const statusUpdateEmail = constructStatusUpdateEmail(
+          email,
+          username,
+          order._id,
+          status
+        );
+        await sendEmail(statusUpdateEmail);
+      }
+      const adminEmails = [
+        "Gbolahanifeoluwa10@gmail.com",
+        "9jacarpenter@gmail.com",
+        "ibenemeikenna96@gmail.com",
+      ];
+      // Send email to admin
+      adminEmails.forEach(async (adminEmail) => {
+        const adminStatusUpdateEmail = constructStatusUpdateEmail(
+          adminEmail,
+          "Admin",
+          order._id,
+          status
+        );
+        await sendEmail(adminStatusUpdateEmail);
+      });
     }
 
     res.status(200).json({ message: "Order updated successfully", order });
@@ -528,7 +736,6 @@ router.put("/:orderId", adminMiddleware, async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
 router.get("/admin", async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
