@@ -11,7 +11,7 @@ const sendSMS = async (to, message) => {
       type: "plain", // or 'flash' depending on your needs
       channel: "generic",
       api_key: TERMII_API_KEY,
-      from: "Clonekraft Team",
+      from: "ChatWazobia",
     });
     console.log("SMS sent successfully:", response.data);
   } catch (error) {

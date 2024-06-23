@@ -11,9 +11,14 @@ const transporter = nodemailer.createTransport({
 });
 
 // Function to construct status update email template
-const constructStatusUpdateEmail = (recipient, recipientName, orderId, status) => {
+const constructStatusUpdateEmail = (
+  recipient,
+  recipientName,
+  orderId,
+  status
+) => {
   return {
-    from: '"Clonekraft Team"',
+    from: '"Clonekraft Team" <ibenemeikenna96@gmail.com', 
     to: recipient,
     subject: `Order Status Update: Order ${orderId}`,
     html: `
@@ -27,9 +32,14 @@ const constructStatusUpdateEmail = (recipient, recipientName, orderId, status) =
 };
 
 // Function to construct price update email template
-const constructPriceUpdateEmail = (recipient, recipientName, orderId, price) => {
+const constructPriceUpdateEmail = (
+  recipient,
+  recipientName,
+  orderId,
+  price
+) => {
   return {
-    from: '"Clonekraft Team"',
+    from: '"Clonekraft Team" <ibenemeikenna96@gmail.com', 
     to: recipient,
     subject: `Price Update: Order ${orderId}`,
     html: `
@@ -55,30 +65,35 @@ const sendEmail = async (mailOptions) => {
   }
 };
 
-const sendProgressUpdateNotification = async (recipient, username, orderId, progress) => {
-    try {
-      // Send mail with defined transport object
-      let info = await transporter.sendMail({
-        from: '"Clonekraft Team"',
-        to: recipient,
-        subject: `Order Progress Update for Order ${orderId}`,
-        html: `
+const sendProgressUpdateNotification = async (
+  recipient,
+  username,
+  orderId,
+  progress
+) => {
+  try {
+    // Send mail with defined transport object
+    let info = await transporter.sendMail({
+      from: '"Clonekraft Team" <ibenemeikenna96@gmail.com',
+      to: recipient,
+      subject: `Order Progress Update for Order ${orderId}`,
+      html: `
           <p>Dear ${username},</p>
           <p>The progress for your order (${orderId}) has been updated to ${progress}%.</p>
           <p>Thank you for choosing Clonekraft.</p>
         `,
-      });
-  
-      console.log("Progress update notification sent:", info.messageId);
-    } catch (error) {
-      console.error("Error sending progress update notification:", error);
-      throw new Error("Failed to send progress update notification");
-    }
-  };
+    });
+
+    console.log("Progress update notification sent:", info.messageId);
+  } catch (error) {
+    console.error("Error sending progress update notification:", error);
+    throw new Error("Failed to send progress update notification");
+  }
+};
 
 module.exports = {
   constructStatusUpdateEmail,
   constructPriceUpdateEmail,
   sendEmail,
-  sendProgressUpdateNotification
+  sendProgressUpdateNotification,
 };
