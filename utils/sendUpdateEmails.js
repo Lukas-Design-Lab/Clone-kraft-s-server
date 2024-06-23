@@ -59,7 +59,7 @@ const sendProgressUpdateNotification = async (recipient, username, orderId, prog
     try {
       // Send mail with defined transport object
       let info = await transporter.sendMail({
-        from: '"Clonekraft Team" <ibenemeikenna96@gmail.com>',
+        from: '"Clonekraft Team"',
         to: recipient,
         subject: `Order Progress Update for Order ${orderId}`,
         html: `

@@ -16,7 +16,7 @@ const sendWelcomeEmail = async (email) => {
   try {
     // Send mail with defined transport object
     let info = await transporter.sendMail({
-      from: '"Clonekraft Team" <process.env.EMAIL_USER>', // Sender address
+      from: '"Clonekraft Team"', // Sender address
       to: email, // List of recipients
       subject: "Welcome to Clonekraft!", // Subject line
       text: `Dear User,
