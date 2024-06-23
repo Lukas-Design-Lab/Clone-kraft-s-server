@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 // Function to construct status update email template
 const constructStatusUpdateEmail = (recipient, recipientName, orderId, status) => {
   return {
-    from: "ibenemeikenna96@gmail.com",
+    from: '"Clonekraft Team"',
     to: recipient,
     subject: `Order Status Update: Order ${orderId}`,
     html: `
@@ -29,7 +29,7 @@ const constructStatusUpdateEmail = (recipient, recipientName, orderId, status) =
 // Function to construct price update email template
 const constructPriceUpdateEmail = (recipient, recipientName, orderId, price) => {
   return {
-    from: "ibenemeikenna96@gmail.com",
+    from: '"Clonekraft Team"',
     to: recipient,
     subject: `Price Update: Order ${orderId}`,
     html: `
