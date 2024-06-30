@@ -174,13 +174,13 @@ router.post("/login", async (req, res) => {
   }
 });
 // Get all affiliate marketers with referred users and their order IDs
-// Get all affiliate marketers with referred users and their order details
-router.get("/", async (req, res) => {
+// Get all affiliate marketers with referred users
+router.get("/marketers", async (req, res) => {
   try {
     // Fetch all affiliate marketers, excluding the password field
     const marketers = await AffiliateMarketer.find().select("-password").lean();
 
-    // Array to store marketers with referred users and their orders info
+    // Array to store marketers with referred users
     const marketersWithUsers = [];
 
     // Iterate through each marketer
@@ -190,40 +190,12 @@ router.get("/", async (req, res) => {
         referralId: marketer._id,
       }).select("username email _id");
 
-      // Process each referred user
-      const referredUsersWithOrders = await Promise.all(
-        referredUsers.map(async (user) => {
-          // Fetch orders initiated by the user
-          const orders = await order
-            .find({ userId: user._id })
-            .select("_id paid status price progress");
-
-          // Calculate total number of orders made by the user
-          const totalOrders = orders.length;
-
-          // Include detailed fields for each order
-          const ordersLog = orders.map((order) => ({
-            orderId: order._id,
-            paid: order.paid,
-            status: order.status,
-            price: order.price,
-            progress: order.progress,
-            totalOrders: totalOrders,
-            username: user.username,
-            email: user.email,
-          }));
-
-          return {
-            // username: user.username,
-            // email: user.email,
-            // totalOrders,
-            ordersLog, // Include detailed fields
-          };
-        })
-      );
-
       // Add referredUsers array to marketer object
-      marketer.referredUsers = referredUsersWithOrders;
+      marketer.referredUsers = referredUsers.map((user) => ({
+        username: user.username,
+        email: user.email,
+        userId: user._id,
+      }));
       marketersWithUsers.push({
         ...marketer,
         balance: marketer.balance,
@@ -237,7 +209,7 @@ router.get("/", async (req, res) => {
     // Return the response with marketers and referred users
     return res.status(200).json(marketersWithUsers);
   } catch (error) {
-    console.error("Error in GET /api/affiliates:", error.message);
+    console.error("Error in GET /api/affiliates/marketers:", error.message);
     return res.status(500).send("Internal server error");
   }
 });
@@ -349,6 +321,83 @@ router.delete("/:marketerId", async (req, res) => {
   } catch (error) {
     console.error(
       "Error in DELETE /api/affiliates/affiliate-marketer/:marketerId:",
+      error.message
+    );
+    return res.status(500).send("Internal server error");
+  }
+});
+
+// Get users by referral ID
+router.get("/users/:referralId", async (req, res) => {
+  const { referralId } = req.params;
+  try {
+    // Find users referred by the specified referral ID
+    const users = await User.find({ referralId }).select("username email _id");
+    console.log(users, "users");
+    // Aggregate total orders and total paid orders for each user
+    const usersWithOrderInfo = await Promise.all(
+      users.map(async (user) => {
+        // Get the total order count for the user
+        const totalOrders = await order.countDocuments({ userId: user._id });
+
+        // Get the count of paid orders for the user
+        const paidOrders = await order.countDocuments({
+          userId: user._id,
+          status: "paid",
+        });
+
+        return {
+          username: user.username,
+          email: user.email,
+          totalOrders,
+          paidOrders,
+    
+        };
+      })
+    );
+
+    // Return the response with the users and their order information
+    return res.status(200).json(usersWithOrderInfo);
+  } catch (error) {
+    console.error(
+      `Error in GET /api/affiliates/users/${referralId}:`,
+      error.message
+    );
+    return res.status(500).send("Internal server error");
+  }
+});
+
+// Get orders of users by referral ID
+router.get("/orders/:referralId", async (req, res) => {
+  const { referralId } = req.params;
+  try {
+    // Find users referred by the specified referral ID
+    const users = await User.find({ referralId }).select("username email _id");
+
+    // Create a map of user IDs to user data for quick lookup
+    const userMap = users.reduce((map, user) => {
+      map[user._id] = { username: user.username, email: user.email };
+      return map;
+    }, {});
+
+    // Collect user IDs
+    const userIds = users.map((user) => user._id);
+
+    // Find orders for the collected user IDs
+    const orders = await order.find({ userId: { $in: userIds } }).select("_id paid status price progress userId");
+
+    // Enrich orders with user information
+    const ordersWithUserInfo = orders.map(order => ({
+      ...order.toObject(),
+      username: userMap[order.userId].username,
+      email: userMap[order.userId].email,
+    }));
+
+    // Return the response with the orders and user information
+    return res.status(200).json(ordersWithUserInfo);
+  } catch (error) {
+    console.error(
+      `Error in GET /api/affiliates/orders/${referralId}:`,
       error.message
     );
     return res.status(500).send("Internal server error");
