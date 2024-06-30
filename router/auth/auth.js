@@ -12,6 +12,7 @@ const B2 = require("backblaze-b2");
 const multer = require("multer");
 const adminMiddleware = require("../../middleware/token/adminToken");
 const { sendWelcomeEmail } = require("../../utils/sendWelcomeEmail");
+const AffiliateMarketer = require("../../models/AffiliateMarketer");
 
 // const User = require("../models/user");
 // const OTPModel = require("../models/otp");
@@ -119,32 +120,57 @@ router.post("/register", async (req, res) => {
     username: Joi.string().min(3).max(30).required(),
     phoneNumber: Joi.string().min(10).max(15).required(),
     address: Joi.string().min(5).max(200).required(),
+    referralId: Joi.string().optional(), // Allow referralId to be optional
   });
 
   const { error } = schema.validate(req.body);
   if (error) return res.status(400).send(error.details[0].message);
 
   try {
+    // Check if user already exists
     let user = await User.findOne({ email: req.body.email.toLowerCase() });
     if (user) return res.status(400).send("User already exists.");
 
-    user = new User({
+    // Prepare new user data
+    const newUser = {
       username: req.body.username,
       password: req.body.password,
       email: req.body.email.toLowerCase(),
       phoneNumber: req.body.phoneNumber,
       address: req.body.address,
-    });
+    };
 
+    // If referralId is provided, link it to an affiliate marketer
+    if (req.body.referralId) {
+      const affiliateMarketer = await AffiliateMarketer.findOne({
+        referralId: req.body.referralId,
+      });
+      if (!affiliateMarketer) {
+        return res.status(400).send("Invalid referral ID.");
+      }
+      newUser.referralId = affiliateMarketer._id;
+    }
+
+    // Create new user instance
+    user = new User(newUser);
+
+    // Hash password
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(user.password, salt);
 
+    // Save user to database
     await user.save();
-    await sendWelcomeEmail(user.email);
 
+    // Optionally, send welcome email
+    // await sendWelcomeEmail(user.email);
+
+    // Generate authentication token
     const token = genAuthToken(user);
+
+    // Return user data and token
     return res.status(200).json({ user, token });
   } catch (error) {
+    console.error(error.message);
     res.status(500).send("Internal server error");
   }
 });
@@ -167,20 +193,12 @@ router.post("/validate", async (req, res) => {
     if (!otpData) {
       return res.status(400).send("Invalid OTP");
     }
-
-    // Delete OTP from database
     await OTPModel.deleteOne({ email, otp });
-
-    // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).send("User not found.");
     }
-
-    // Generate authentication token
     const token = genAuthToken(user);
-
-    // Return user object and token
     res.status(200).send({ user, token });
   } catch (error) {
     res.status(500).send("Internal server error");

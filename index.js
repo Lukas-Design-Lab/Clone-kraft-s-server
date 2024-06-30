@@ -12,6 +12,7 @@ const admin = require("./router/admin/admin");
 const Order = require("./models/order");
 const newsletter = require("./router/newsletter/news");
 const rating = require("./router/rating/rating");
+const affiliateRouter = require('./router/marketers/marketers')
 //const order = require("./models/order");
 //const paystackRoutes = require("./router/pay");
 const app = express();
@@ -110,6 +111,8 @@ app.use("/order", orders);
 app.use("/admin", admin);
 app.use("/newsletter", newsletter);
 app.use("/rating", rating);
+app.use("/marketer", affiliateRouter);
+
 //app.use("/messaging", smsRouter);
 //app.use("/api/paystack", paystackRoutes); // Use the Paystack router
 

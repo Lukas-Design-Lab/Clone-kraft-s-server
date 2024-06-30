@@ -1,19 +1,12 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 
-// Define the User schema
 const UserSchema = new mongoose.Schema(
   {
     email: {
       type: String,
       required: true,
       unique: true,
-    },
-    username: {
-      type: String,
-      required: true,
-      minlength: 3,
-      maxlength: 30,
     },
     username: {
       type: String,
@@ -40,6 +33,11 @@ const UserSchema = new mongoose.Schema(
     imageUrl: {
       type: String,
       default: null,
+    },
+    referralId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'AffiliateMarketer',
+      default: null
     },
     orders: [
       {
