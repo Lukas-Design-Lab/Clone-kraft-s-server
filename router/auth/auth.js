@@ -140,15 +140,17 @@ router.post("/register", async (req, res) => {
       address: req.body.address,
     };
 
+    let affiliateMarketer;
     // If referralId is provided, link it to an affiliate marketer
     if (req.body.referralId) {
-      const affiliateMarketer = await AffiliateMarketer.findOne({
+      affiliateMarketer = await AffiliateMarketer.findOne({
         referralId: req.body.referralId,
       });
-      if (!affiliateMarketer) {
-        return res.status(400).send("Invalid referral ID.");
+      if (affiliateMarketer) {
+        newUser.referralId = affiliateMarketer._id;
+      } else {
+        console.warn("Invalid referral ID provided.");
       }
-      newUser.referralId = affiliateMarketer._id;
     }
 
     // Create new user instance
@@ -161,17 +163,36 @@ router.post("/register", async (req, res) => {
     // Save user to database
     await user.save();
 
-    // Optionally, send welcome email
-    // await sendWelcomeEmail(user.email);
-
     // Generate authentication token
     const token = genAuthToken(user);
+
+    // Send email notification to the affiliate marketer (non-blocking)
+    if (affiliateMarketer) {
+      const mailOptions = {
+        from: '"Clonekraft Team" <ibenemeikenna96@gmail.com>',
+        to: affiliateMarketer.email,
+        subject: `New User Signup with Your Referral Code`,
+        html: `
+          <p>Dear ${affiliateMarketer.email},</p>
+          <p>A new user has signed up using your referral code:</p>
+          <p>Username: ${user.username}</p>
+          <p>Email: ${user.email}</p>
+          <p>Thank you for promoting our services.</p>
+          <p>Best regards,</p>
+          <p>Clonekraft Team</p>
+        `,
+      };
+
+      sendEmail(mailOptions).catch((error) => {
+        console.error("Error sending email:", error);
+      });
+    }
 
     // Return user data and token
     return res.status(200).json({ user, token });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).send("Internal server error");
+    console.error("Error in POST /register:", error.message);
+    res.status(500).send(`Internal server error: ${error.message}`);
   }
 });
 

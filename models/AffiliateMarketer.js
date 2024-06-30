@@ -28,38 +28,37 @@ const AffiliateMarketerSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "User",
         },
-        username: {
+        email: {
+          type: String,
+          required: true,
+          unique: true,
+        },
+        password: {
           type: String,
           required: true,
         },
+        balance: {
+          type: Number,
+          default: 0,
+        },
+        totalEarnings: {
+          type: Number,
+          default: 0,
+        },
+        monthlyEarnings: {
+          type: Number,
+          default: 0,
+        },
+        username: {
+          type: String,
+        },
+        withdrawalLogs: [WithdrawalLogSchema],
+        requestWithdrawal: {
+          type: Boolean,
+          default: false,
+        },
       },
     ],
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    balance: {
-      type: Number,
-      default: 0,
-    },
-    totalEarnings: {
-      type: Number,
-      default: 0,
-    },
-    monthlyEarnings: {
-      type: Number,
-      default: 0,
-    },
-    withdrawalLogs: [WithdrawalLogSchema],
-    requestWithdrawal: {
-      type: Boolean,
-      default: false,
-    },
   },
   { timestamps: true }
 );

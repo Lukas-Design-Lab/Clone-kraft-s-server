@@ -7,14 +7,95 @@ const AffiliateMarketer = require("../../models/AffiliateMarketer");
 const User = require("../../models/user");
 const order = require("../../models/order");
 const genAuthTokenAffiliate = require("../../utils/genAuthTokenAffiliate");
-
-
-
+const MarketerOtp = require("../../models/MarketerOtp");
+const nodemailer = require("nodemailer");
+const { resendOTP } = require("../../utils/resendOtp");
 // {
 //   "email": "affiliate@example.com",
 //   "password": "SecurePassword123"
 // }
 
+// Helper function to generate OTP
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Route to initiate forgot password process
+router.post("/forgot", async (req, res) => {
+  const schema = Joi.object({
+    email: Joi.string().email().required(),
+  });
+
+  const { error } = schema.validate(req.body);
+  if (error) return res.status(400).send(error.details[0].message);
+
+  try {
+    // Check if marketer exists
+    let marketer = await AffiliateMarketer.findOne({
+      email: req.body.email.toLowerCase(),
+    });
+    if (!marketer) return res.status(404).send("Marketer not found.");
+
+    // Generate OTP
+    const otp = generateOTP();
+
+    // Save OTP to temporary schema (MarketerOtp)
+    await MarketerOtp.findOneAndDelete({ email: req.body.email });
+    const newOtp = new MarketerOtp({
+      email: req.body.email,
+      otp,
+      createdAt: new Date(),
+    });
+    await newOtp.save();
+    const email = req.body.email;
+    console.log(otp, "otp");
+    resendOTP(email, otp);
+    return res.status(200).send("OTP sent to your email.");
+  } catch (error) {
+    console.error("Error in forgot password:", error.message);
+    return res.status(500).send("Internal server error.");
+  }
+});
+
+// Route to validate OTP and reset password
+router.post("/validate", async (req, res) => {
+  const schema = Joi.object({
+    email: Joi.string().email().required(),
+    otp: Joi.string().length(6).required(),
+    newPassword: Joi.string().min(6).max(200).required(),
+  });
+
+  const { error } = schema.validate(req.body);
+  if (error) return res.status(400).send(error.details[0].message);
+
+  try {
+    // Find OTP in temporary schema (MarketerOtp)
+    const otpRecord = await MarketerOtp.findOne({
+      email: req.body.email,
+      otp: req.body.otp,
+      createdAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) }, // OTP valid for 5 minutes
+    });
+
+    if (!otpRecord) return res.status(400).send("Invalid OTP or expired.");
+
+    // Update password for the marketer
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(req.body.newPassword, salt);
+
+    await AffiliateMarketer.findOneAndUpdate(
+      { email: req.body.email },
+      { $set: { password: hashedPassword } }
+    );
+
+    // Delete OTP record from temporary schema
+    await MarketerOtp.deleteOne({ email: req.body.email });
+
+    return res.status(200).send("Password updated successfully.");
+  } catch (error) {
+    console.error("Error in validate OTP:", error.message);
+    return res.status(500).send("Internal server error.");
+  }
+});
 // Affiliate registration route
 router.post("/register", async (req, res) => {
   const schema = Joi.object({
@@ -45,6 +126,7 @@ router.post("/register", async (req, res) => {
       email: req.body.email.toLowerCase(),
       password: req.body.password,
       referralId: referralId,
+      username: req.body.email.toLowerCase(),
     });
 
     const salt = await bcrypt.genSalt(10);
@@ -77,6 +159,7 @@ router.post("/login", async (req, res) => {
     });
     if (!marketer) return res.status(400).send("Invalid email or password.");
 
+    console.log(marketer, "marketer");
     const validPassword = await bcrypt.compare(
       req.body.password,
       marketer.password
@@ -111,9 +194,9 @@ router.get("/", async (req, res) => {
       const referredUsersWithOrders = await Promise.all(
         referredUsers.map(async (user) => {
           // Fetch orders initiated by the user
-          const orders = await order.find({ userId: user._id }).select(
-            "_id paid status price progress"
-          );
+          const orders = await order
+            .find({ userId: user._id })
+            .select("_id paid status price progress");
 
           // Calculate total number of orders made by the user
           const totalOrders = orders.length;
@@ -125,12 +208,15 @@ router.get("/", async (req, res) => {
             status: order.status,
             price: order.price,
             progress: order.progress,
+            totalOrders: totalOrders,
+            username: user.username,
+            email: user.email,
           }));
 
           return {
-            username: user.username,
-            email: user.email,
-            totalOrders,
+            // username: user.username,
+            // email: user.email,
+            // totalOrders,
             ordersLog, // Include detailed fields
           };
         })
@@ -177,9 +263,9 @@ router.get("/:referralId", async (req, res) => {
     const referredUsersWithOrders = await Promise.all(
       referredUsers.map(async (user) => {
         // Fetch orders initiated by the user
-        const orders = await order.find({ userId: user._id }).select(
-          "_id paid status price progress"
-        );
+        const orders = await order
+          .find({ userId: user._id })
+          .select("_id paid status price progress");
 
         // Calculate total number of orders made by the user
         const totalOrders = orders.length;
@@ -191,12 +277,17 @@ router.get("/:referralId", async (req, res) => {
           status: order.status,
           price: order.price,
           progress: order.progress,
+          totalOrders: totalOrders,
+          username: user.username,
+          email: user.email,
+          balance: marketer.balance,
+          totalEarnings: marketer.totalEarnings,
+          monthlyEarnings: marketer.monthlyEarnings,
+          withdrawalLogs: marketer.withdrawalLogs,
+          requestWithdrawal: marketer.requestWithdrawal,
         }));
 
         return {
-          username: user.username,
-          email: user.email,
-          totalOrders,
           ordersLog, // Include detailed fields
         };
       })
@@ -208,18 +299,12 @@ router.get("/:referralId", async (req, res) => {
     // Return the response with the specific marketer and referred users
     return res.status(200).json({
       ...marketer,
-      balance: marketer.balance,
-      totalEarnings: marketer.totalEarnings,
-      monthlyEarnings: marketer.monthlyEarnings,
-      withdrawalLogs: marketer.withdrawalLogs,
-      requestWithdrawal: marketer.requestWithdrawal,
     });
   } catch (error) {
     console.error("Error in GET /api/affiliates/:referralId:", error.message);
     return res.status(500).send("Internal server error");
   }
 });
-
 
 // Delete a referral user by ID
 router.delete("/user/:userId", async (req, res) => {
@@ -233,9 +318,14 @@ router.delete("/user/:userId", async (req, res) => {
       return res.status(404).send("Referral user not found.");
     }
 
-    return res.status(200).json({ message: "Referral user deleted successfully." });
+    return res
+      .status(200)
+      .json({ message: "Referral user deleted successfully." });
   } catch (error) {
-    console.error("Error in DELETE /api/affiliates/referral-user/:userId:", error.message);
+    console.error(
+      "Error in DELETE /api/affiliates/referral-user/:userId:",
+      error.message
+    );
     return res.status(500).send("Internal server error");
   }
 });
@@ -245,15 +335,22 @@ router.delete("/:marketerId", async (req, res) => {
     const { marketerId } = req.params;
 
     // Find and delete the affiliate marketer
-    const deletedMarketer = await AffiliateMarketer.findByIdAndDelete(marketerId);
+    const deletedMarketer = await AffiliateMarketer.findByIdAndDelete(
+      marketerId
+    );
 
     if (!deletedMarketer) {
       return res.status(404).send("Affiliate marketer not found.");
     }
 
-    return res.status(200).json({ message: "Affiliate marketer deleted successfully." });
+    return res
+      .status(200)
+      .json({ message: "Affiliate marketer deleted successfully." });
   } catch (error) {
-    console.error("Error in DELETE /api/affiliates/affiliate-marketer/:marketerId:", error.message);
+    console.error(
+      "Error in DELETE /api/affiliates/affiliate-marketer/:marketerId:",
+      error.message
+    );
     return res.status(500).send("Internal server error");
   }
 });

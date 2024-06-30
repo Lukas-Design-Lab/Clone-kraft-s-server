@@ -40,7 +40,7 @@ const sendOrderNotification = async (adminEmails, orderDetails, userEmail) => {
 const sendEmail = async (to, subject, htmlContent) => {
   try {
     let info = await transporter.sendMail({
-      from: '"Clonekraft Team"',
+      from: '"Clonekraft Team" <ibenemeikenna96@gmail.com',
       to,
       subject,
       html: htmlContent,
