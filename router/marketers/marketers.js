@@ -116,7 +116,6 @@ router.post("/register", async (req, res) => {
     let referralId;
     let idExists;
 
-    // Ensure unique referralId
     do {
       referralId = generateReferralId();
       idExists = await AffiliateMarketer.findOne({ referralId });
@@ -126,11 +125,11 @@ router.post("/register", async (req, res) => {
       email: req.body.email.toLowerCase(),
       password: req.body.password,
       referralId: referralId,
-      username: req.body.email.toLowerCase(),
+      username: req.body.email,
     });
 
     const salt = await bcrypt.genSalt(10);
-    marketer.password = await bcrypt.hash(marketer.password, salt);
+    marketer.password = await bcrypt.hash(req.body.password, salt);
 
     await marketer.save();
 
@@ -138,7 +137,7 @@ router.post("/register", async (req, res) => {
 
     return res.status(200).json({ marketer, token });
   } catch (error) {
-    console.error("Error in POST /register:", error.message); // Log the error
+    console.error("Error in POST /register:", error.message);
     res.status(500).send(`Internal server error: ${error.message}`);
   }
 });
@@ -173,9 +172,10 @@ router.post("/login", async (req, res) => {
     res.status(500).send("Internal server error");
   }
 });
+
 // Get all affiliate marketers with referred users and their order IDs
 // Get all affiliate marketers with referred users
-router.get("/marketers", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     // Fetch all affiliate marketers, excluding the password field
     const marketers = await AffiliateMarketer.find().select("-password").lean();
@@ -351,7 +351,6 @@ router.get("/users/:referralId", async (req, res) => {
           email: user.email,
           totalOrders,
           paidOrders,
-    
         };
       })
     );
@@ -384,10 +383,12 @@ router.get("/orders/:referralId", async (req, res) => {
     const userIds = users.map((user) => user._id);
 
     // Find orders for the collected user IDs
-    const orders = await order.find({ userId: { $in: userIds } }).select("_id paid status price progress userId");
+    const orders = await order
+      .find({ userId: { $in: userIds } })
+      .select("_id paid status price progress userId");
 
     // Enrich orders with user information
-    const ordersWithUserInfo = orders.map(order => ({
+    const ordersWithUserInfo = orders.map((order) => ({
       ...order.toObject(),
       username: userMap[order.userId].username,
       email: userMap[order.userId].email,
