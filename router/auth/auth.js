@@ -114,18 +114,6 @@ router.post("/resend", async (req, res) => {
 });
 
 router.post("/register", async (req, res) => {
-  const schema = Joi.object({
-    password: Joi.string().min(6).max(200).required(),
-    email: Joi.string().min(6).max(30).required().email(),
-    username: Joi.string().min(3).max(30).required(),
-    phoneNumber: Joi.string().min(10).max(15).required(),
-    address: Joi.string().min(5).max(200).required(),
-    referralId: Joi.string().optional(), // Allow referralId to be optional
-  });
-
-  const { error } = schema.validate(req.body);
-  if (error) return res.status(400).send(error.details[0].message);
-
   try {
     // Check if user already exists
     let user = await User.findOne({ email: req.body.email.toLowerCase() });
@@ -138,6 +126,7 @@ router.post("/register", async (req, res) => {
       email: req.body.email.toLowerCase(),
       phoneNumber: req.body.phoneNumber,
       address: req.body.address,
+      referralId: null, // Initialize referralId to null
     };
 
     let affiliateMarketer;
@@ -166,28 +155,7 @@ router.post("/register", async (req, res) => {
     // Generate authentication token
     const token = genAuthToken(user);
 
-    // Send email notification to the affiliate marketer (non-blocking)
-    if (affiliateMarketer) {
-      const mailOptions = {
-        from: '"Clonekraft Team" <ibenemeikenna96@gmail.com>',
-        to: affiliateMarketer.email,
-        subject: `New User Signup with Your Referral Code`,
-        html: `
-          <p>Dear ${affiliateMarketer.email},</p>
-          <p>A new user has signed up using your referral code:</p>
-          <p>Username: ${user.username}</p>
-          <p>Email: ${user.email}</p>
-          <p>Thank you for promoting our services.</p>
-          <p>Best regards,</p>
-          <p>Clonekraft Team</p>
-        `,
-      };
-
-      sendEmail(mailOptions).catch((error) => {
-        console.error("Error sending email:", error);
-      });
-    }
-
+  
     // Return user data and token
     return res.status(200).json({ user, token });
   } catch (error) {

@@ -32,9 +32,7 @@ const AffiliateMarketerSchema = new mongoose.Schema(
       unique: true,
       required: true,
     },
-    username: {
-      type: String,
-    },
+
     referralId: {
       type: String,
       unique: true,
