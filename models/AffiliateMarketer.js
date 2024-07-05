@@ -14,6 +14,39 @@ const WithdrawalLogSchema = new mongoose.Schema({
   },
 });
 
+const ReferredUserSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+  email: {
+    type: String,
+    required: true,
+    // unique: true, // Remove this line to eliminate the unique constraint
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  balance: {
+    type: Number,
+    default: 0,
+  },
+  totalEarnings: {
+    type: Number,
+    default: 0,
+  },
+  monthlyEarnings: {
+    type: Number,
+    default: 0,
+  },
+  withdrawalLogs: [WithdrawalLogSchema],
+  requestWithdrawal: {
+    type: Boolean,
+    default: false,
+  },
+});
+
 const AffiliateMarketerSchema = new mongoose.Schema(
   {
     email: {
@@ -31,40 +64,7 @@ const AffiliateMarketerSchema = new mongoose.Schema(
       unique: true,
       required: true,
     },
-    referredUsers: [
-      {
-        userId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-        },
-        email: {
-          type: String,
-          required: true,
-          unique: true,
-        },
-        password: {
-          type: String,
-          required: true,
-        },
-        balance: {
-          type: Number,
-          default: 0,
-        },
-        totalEarnings: {
-          type: Number,
-          default: 0,
-        },
-        monthlyEarnings: {
-          type: Number,
-          default: 0,
-        },
-        withdrawalLogs: [WithdrawalLogSchema],
-        requestWithdrawal: {
-          type: Boolean,
-          default: false,
-        },
-      },
-    ],
+    referredUsers: [ReferredUserSchema],
   },
   { timestamps: true }
 );
