@@ -99,8 +99,8 @@ router.post("/validate", async (req, res) => {
 // Affiliate registration route
 router.post("/register", async (req, res) => {
   const schema = Joi.object({
-    password: Joi.string().min(6).max(200).required(),
-    email: Joi.string().min(6).max(30).required().email(),
+    password: Joi.string().min(4).max(200).required(),
+    email: Joi.string().min(4).max(200).required().email(),
   });
 
   const { error } = schema.validate(req.body);
