@@ -7,7 +7,6 @@ const WithdrawalLogSchema = new mongoose.Schema({
   },
   report: {
     type: String,
-    // required: true,
   },
   time: {
     type: Date,
@@ -27,12 +26,6 @@ const AffiliateMarketerSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    referralId: {
-      type: String,
-      unique: true,
-      required: true,
-    },
-
     referralId: {
       type: String,
       unique: true,
@@ -64,9 +57,6 @@ const AffiliateMarketerSchema = new mongoose.Schema(
         monthlyEarnings: {
           type: Number,
           default: 0,
-        },
-        username: {
-          type: String,
         },
         withdrawalLogs: [WithdrawalLogSchema],
         requestWithdrawal: {

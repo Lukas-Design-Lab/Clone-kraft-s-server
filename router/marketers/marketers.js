@@ -125,7 +125,7 @@ router.post("/register", async (req, res) => {
       email: req.body.email.toLowerCase(),
       password: req.body.password,
       referralId: referralId,
-      username: req.body.email,
+      //username: req.body.email,
     });
 
     const salt = await bcrypt.genSalt(10);
