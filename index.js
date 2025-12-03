@@ -16,7 +16,7 @@ const affiliateRouter = require('./router/marketers/marketers')
 //const order = require("./models/order");
 //const paystackRoutes = require("./router/pay");
 const app = express();
-//const smsRouter = require("./router/smsRouter");
+
 
 app.use(cors());
 app.use(bodyParser.json());
